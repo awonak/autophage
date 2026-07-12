@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 // Include the DSP header we want to test
 #include "autophage_dsp.h"
@@ -58,12 +59,26 @@ int main(int argc, char** argv) {
         inR[i] = pSampleData[i * 2 + 1];
     }
 
-    // Set up InputBuffer and OutputBuffer
-    const float* const inBuf[2] = { inL.data(), inR.data() };
-    float* outBuf[2] = { outL.data(), outR.data() };
+    // Process block by block to allow parameter sweeping
+    size_t blockSize = 32;
+    for (size_t i = 0; i < totalPCMFrameCount; i += blockSize) {
+        size_t frames = std::min(blockSize, (size_t)(totalPCMFrameCount - i));
+        
+        // Sweep fold from 0.0 to 1.0
+        float progress = (float)i / (float)totalPCMFrameCount;
+        params.fold = progress;
+        // Give left channel some offset
+        params.offset = 0.5f;
+        params.symmetry = progress; 
 
-    // Process
-    autophage_dsp::Process(inBuf, outBuf, totalPCMFrameCount);
+        autophage_dsp::SetChannel(0, params);
+        autophage_dsp::SetChannel(1, params);
+
+        const float* in[2] = { inL.data() + i, inR.data() + i };
+        float* out[2] = { outL.data() + i, outR.data() + i };
+        
+        autophage_dsp::Process(in, out, frames);
+    }
 
     // Interleave output
     std::vector<float> outData(totalPCMFrameCount * 2);
