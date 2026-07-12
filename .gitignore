@@ -1,2 +1,17 @@
+# Build directories and artifacts
 build/
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+
+# Local test harness artifacts
+test_harness
+test/*.wav
+test/dr_wav.h
+
+# OS/IDE
 .DS_Store
+.vscode/
+__pycache__/

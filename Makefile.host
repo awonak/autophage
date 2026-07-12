@@ -1,0 +1,23 @@
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -Isrc -Itest -O2
+
+SRCS = test/harness.cpp src/autophage_dsp.cpp
+OBJS = $(SRCS:.cpp=.o)
+
+TARGET = test_harness
+
+# On macOS, dr_wav might need some basic math libs, but they are standard.
+LDFLAGS = 
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJS) $(TARGET) test/input.wav test/output.wav
+
+.PHONY: all clean
