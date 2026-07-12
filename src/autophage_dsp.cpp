@@ -19,7 +19,7 @@ struct Smoother {
     void Init(float sample_rate, float time_ms = 20.0f) {
         coeff = 1.0f - std::exp(-1.0f / (sample_rate * (time_ms / 1000.0f)));
     }
-    
+
     float Process(float target) {
         val += coeff * (target - val);
         return val;
@@ -58,8 +58,8 @@ void SetChannel(uint8_t ch, const ChannelParams& p) {
 inline float ProcessFold(float in, float fold_amount, float offset, float symmetry) {
     float gain = 1.0f + fold_amount * 10.0f;
     float dc_offset = offset * symmetry;
-    // Inject the DC offset before applying gain to ensure the signal is 
-    // pushed deeply into the folding thresholds, making the negative folding 
+    // Inject the DC offset before applying gain to ensure the signal is
+    // pushed deeply into the folding thresholds, making the negative folding
     // (and positive folding) highly responsive to the offset knob.
     float x = (in + dc_offset) * gain;
 

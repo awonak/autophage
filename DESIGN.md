@@ -8,33 +8,41 @@ The Offset knob controls how much positive DC voltage(0 to 5v, clockwise) or neg
 
 The Symmetry knob controls the amount of negative or positive offset voltage(dependent on the Offset knob) mixed with the waveform(indicated by the yellow led window below the Symmetry jack).  If positive voltage is mixed with incoming waveform more folds will occur on the positive troughs of the waveform, likewise, when negative voltage is introduced more folds happen on the negative troughs.
 
+## Audio Input
 
-Jack 1: Wave In 1
-Jack 2: Wave In 2
+* Jack 1: Wave In 1
+* Jack 2: Wave In 2
 
-Page 1: Wave Folder
+## Page 1: Wave Folder
 
-B1: Change Page
-B2: Link/Cross-shape folder 1 and 2
+### Buttons
 
-Knob 1: Fold 1
-Knob 2: Offset 1
-Knob 3: Symmetry 1
-Knob 4: Fold 2
-Knob 5: Offset 2
-Knob 6: Symmetry 2
+* B1: Change Page
 
-Page 2: Feedback & Filter (applied to both 1 & 2)
+### Knobs
 
-B1: Change Page
-B2: Change Filter Mode (Low Pass, Band Pass, High Pass)
+* Knob 1: Fold 1
+* Knob 2: Offset 1
+* Knob 3: Symmetry 1
+* Knob 4: Fold 2
+* Knob 5: Offset 2
+* Knob 6: Symmetry 2
 
-Knob 1: Feedback 
-Knob 2: Distortion
-Knob 3: FM Amount Wave 1 (Wave 1 as carrier Wave 2 as modulator)
-Knob 4: FM Amount Wave 2 (Wave 2 as carrier Wave 1 as modulator)
-Knob 5: Filter Cutoff
-Knob 6: Filter Resonance
+## Page 2: Feedback & Filter (applied to both 1 & 2)
+
+### Buttons
+
+* B1: Change Page
+* B2: Change Filter Mode (Low Pass, Band Pass, High Pass)
+
+### Knobs
+
+* Knob 1: Feedback 
+* Knob 2: Distortion
+* Knob 3: FM Amount Wave 1 (Wave 1 as carrier Wave 2 as modulator)
+* Knob 4: FM Amount Wave 2 (Wave 2 as carrier Wave 1 as modulator)
+* Knob 5: Filter Cutoff
+* Knob 6: Filter Resonance
 
 # Persona
 

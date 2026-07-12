@@ -71,6 +71,14 @@ int main() {
     hw.Init();
     autophage_dsp::Init(hw.SampleRate());
 
+    /* CV routing. Map the 6 CV jacks to the 6 wave folder parameters. */
+    cv_matrix.Jack(0).To(l_fold);
+    cv_matrix.Jack(1).To(r_fold);
+    cv_matrix.Jack(2).To(l_offset);
+    cv_matrix.Jack(3).To(r_offset);
+    cv_matrix.Jack(4).To(l_symmetry);
+    cv_matrix.Jack(5).To(r_symmetry);
+
     /* Opting into default settings gestures and controls.*/
     settings.UseBrightness();
     settings.UsePresets(presets);
