@@ -10,13 +10,47 @@
 
 namespace autophage_dsp {
 
-/** Per-channel parameters for wave folding. */
+enum class FilterMode {
+    LowPass = 0,
+    BandPass,
+    HighPass,
+    NumModes
+};
+
+enum class DistortionRouting {
+    PreFilter = 0,
+    PostFilter
+};
+
+enum class FeedbackRouting {
+    RawInput = 0,
+    PostFx
+};
+
+/** Per-channel parameters for wave folding and effects. */
 struct ChannelParams
 {
-    float fold;      // Amount of wave folding
-    float offset;    // DC offset
-    float symmetry;  // Symmetry/mix of offset
+    float fold;           // Amount of wave folding (0..1)
+    float offset;         // DC offset (-1..1)
+    float symmetry;       // Symmetry/mix of offset (0..1)
+    float feedback;       // Feedback amount (0..1)
+    float distortion;     // Distortion amount (0..1)
+    float filter_cutoff;  // Filter cutoff in Hz
+    float filter_res;     // Filter resonance (0..1)
 };
+
+/** Global routing parameters */
+void SetFilterMode(FilterMode mode);
+FilterMode GetFilterMode();
+
+void SetDistortionRouting(DistortionRouting routing);
+DistortionRouting GetDistortionRouting();
+
+void SetFeedbackRouting(FeedbackRouting routing);
+FeedbackRouting GetFeedbackRouting();
+
+void SetMuted(bool muted);
+bool GetMuted();
 
 /** Cache the sample rate. Call once after hw.Init(). */
 void Init(float sample_rate);

@@ -44,6 +44,10 @@ int main(int argc, char** argv) {
     params.fold = 0.0f;
     params.offset = 0.0f;
     params.symmetry = 0.0f;
+    params.feedback = 0.0f;
+    params.distortion = 0.0f;
+    params.filter_cutoff = 16000.0f;
+    params.filter_res = 0.0f;
 
     autophage_dsp::SetChannel(0, params);
     autophage_dsp::SetChannel(1, params);
@@ -69,7 +73,15 @@ int main(int argc, char** argv) {
         params.fold = progress;
         // Give left channel some offset
         params.offset = 0.5f;
-        params.symmetry = progress; 
+        params.symmetry = progress;
+        
+        // Ramp up feedback and distortion heavily towards the end
+        params.feedback = progress * 0.95f; // Up to near-oscillation
+        params.distortion = progress * 0.8f; // Heavy distortion
+        
+        // Sweep filter cutoff downwards
+        params.filter_cutoff = 16000.0f - (progress * 15000.0f);
+        params.filter_res = progress * 0.8f; // Add some resonance
 
         autophage_dsp::SetChannel(0, params);
         autophage_dsp::SetChannel(1, params);

@@ -18,6 +18,6 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(TARGET) test/input.wav test/output.wav
+	rm -f $(OBJS) $(TARGET) test/output.wav
 
 .PHONY: all clean

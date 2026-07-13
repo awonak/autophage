@@ -18,6 +18,8 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
 ### Buttons
 
 * B1: Change Page
+* B2: Toggle Feedback routing (pre/post effects)
+* B3: Toggle Mute (output is silent when muted)
 
 ### Knobs
 
@@ -33,14 +35,15 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
 ### Buttons
 
 * B1: Change Page
-* B2: Change Filter Mode (Low Pass, Band Pass, High Pass)
+* B2: Toggle Distortion pre/post filter
+* B3: Change Filter Mode (Low Pass, Band Pass, High Pass)
 
 ### Knobs
 
 * Knob 1: Feedback 
 * Knob 2: Distortion
-* Knob 3: FM Amount Wave 1 (Wave 1 as carrier Wave 2 as modulator)
-* Knob 4: FM Amount Wave 2 (Wave 2 as carrier Wave 1 as modulator)
+* Knob 3: 
+* Knob 4: 
 * Knob 5: Filter Cutoff
 * Knob 6: Filter Resonance
 

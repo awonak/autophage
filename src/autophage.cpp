@@ -55,16 +55,98 @@ static Presets presets(hw.seed.qspi);
 static Settings settings(hw, &pager);
 static CvMatrix cv_matrix(kNumCvInputs);
 
+static void FilterModePip(LedPanel& panel, uint8_t pot, const ArcGeometry& geo, float norm, uint32_t t_ms, void* ctx) {
+    LedPanel::Rgb c;
+    switch (autophage_dsp::GetFilterMode()) {
+        case autophage_dsp::FilterMode::LowPass: c = {255, 0, 0}; break;
+        case autophage_dsp::FilterMode::BandPass: c = {0, 255, 0}; break;
+        case autophage_dsp::FilterMode::HighPass: c = {0, 0, 255}; break;
+        default: c = {0, 0, 0};
+    }
+    panel.SetRingByHour(pot, 6.0f, c);
+}
+
+static VirtualKnob p2_feedback = VirtualKnob(0, "Feedback")
+                                     .Linear(0.0f, 1.0f)
+                                     .Ring(Level(LedPanel::Rgb{128, 0, 128}, FillAnim::Pulse));
+
+static VirtualKnob p2_distortion = VirtualKnob(1, "Distortion")
+                                       .Linear(0.0f, 1.0f)
+                                       .Ring(Level(LedPanel::Rgb{255, 64, 0}, FillAnim::Ripple));
+
+static VirtualKnob p2_cutoff = VirtualKnob(4, "Cutoff")
+                                   .Exp(60.0f, 16000.0f)
+                                   .Ring(Level(LedPanel::Rgb{0, 255, 255}, FillAnim::None))
+                                   .Overdraw(FilterModePip);
+
+static VirtualKnob p2_res = VirtualKnob(5, "Resonance")
+                                .Linear(0.0f, 1.0f)
+                                .Ring(Level(LedPanel::Rgb{0, 255, 255}, FillAnim::None))
+                                .Overdraw(FilterModePip);
+
 static Page page1 = Page(0).Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry);
-static Page page2 = Page(1);
+static Page page2 = Page(1).Knobs(p2_feedback, p2_distortion, p2_cutoff, p2_res);
+
+static void OnRender(uint32_t t_ms) {
+    if (autophage_dsp::GetMuted()) {
+        for (uint8_t i = 0; i < kNumPots; i++) {
+            hw.leds.ClearRing(i);
+        }
+        hw.leds.SetButtonPair(kButtonB3, {255, 255, 255});
+    } else {
+        if (pager.ActivePage() == 0) {
+            if (autophage_dsp::GetFeedbackRouting() == autophage_dsp::FeedbackRouting::RawInput) {
+                hw.leds.SetButtonPair(kButtonB2, {0, 0, 255});
+            } else {
+                hw.leds.SetButtonPair(kButtonB2, {255, 0, 0});
+            }
+            hw.leds.SetButtonPair(kButtonB3, {0, 0, 0});
+        } else if (pager.ActivePage() == 1) {
+            if (autophage_dsp::GetDistortionRouting() == autophage_dsp::DistortionRouting::PreFilter) {
+                hw.leds.SetButtonPair(kButtonB2, {0, 0, 255});
+            } else {
+                hw.leds.SetButtonPair(kButtonB2, {255, 0, 0});
+            }
+            hw.leds.SetButtonPair(kButtonB3, {0, 0, 0});
+        }
+    }
+}
 
 static void UpdateCoeffs() {
+    // Handle button logic
+    if (pager.ActivePage() == 0) {
+        if (hw.buttons[1].RisingEdge()) {
+            auto current = autophage_dsp::GetFeedbackRouting();
+            autophage_dsp::SetFeedbackRouting(current == autophage_dsp::FeedbackRouting::RawInput ? autophage_dsp::FeedbackRouting::PostFx : autophage_dsp::FeedbackRouting::RawInput);
+        }
+        if (hw.buttons[2].RisingEdge()) {
+            autophage_dsp::SetMuted(!autophage_dsp::GetMuted());
+        }
+    } else if (pager.ActivePage() == 1) {
+        if (hw.buttons[1].RisingEdge()) {
+            auto current = autophage_dsp::GetDistortionRouting();
+            autophage_dsp::SetDistortionRouting(current == autophage_dsp::DistortionRouting::PreFilter ? autophage_dsp::DistortionRouting::PostFilter : autophage_dsp::DistortionRouting::PreFilter);
+        }
+        if (hw.buttons[2].RisingEdge()) {
+            int next = (static_cast<int>(autophage_dsp::GetFilterMode()) + 1) % static_cast<int>(autophage_dsp::FilterMode::NumModes);
+            autophage_dsp::SetFilterMode(static_cast<autophage_dsp::FilterMode>(next));
+        }
+    }
+
     autophage_dsp::SetChannel(0, {l_fold.Value(),
                                   l_offset.Value(),
-                                  l_symmetry.Value()});
+                                  l_symmetry.Value(),
+                                  p2_feedback.Value(),
+                                  p2_distortion.Value(),
+                                  p2_cutoff.Value(),
+                                  p2_res.Value()});
     autophage_dsp::SetChannel(1, {r_fold.Value(),
                                   r_offset.Value(),
-                                  r_symmetry.Value()});
+                                  r_symmetry.Value(),
+                                  p2_feedback.Value(),
+                                  p2_distortion.Value(),
+                                  p2_cutoff.Value(),
+                                  p2_res.Value()});
 }
 
 int main() {
@@ -100,7 +182,8 @@ int main() {
         .Use(cv_matrix)
         .Use(page1)
         .Use(page2)
-        .OnFrame(UpdateCoeffs);
+        .OnFrame(UpdateCoeffs)
+        .OnRender(OnRender);
 
     for (;;) loop.Tick();
 }
