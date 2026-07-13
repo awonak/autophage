@@ -58,10 +58,17 @@ static CvMatrix cv_matrix(kNumCvInputs);
 static void FilterModePip(LedPanel& panel, uint8_t pot, const ArcGeometry& geo, float norm, uint32_t t_ms, void* ctx) {
     LedPanel::Rgb c;
     switch (autophage_dsp::GetFilterMode()) {
-        case autophage_dsp::FilterMode::LowPass: c = {255, 0, 0}; break;
-        case autophage_dsp::FilterMode::BandPass: c = {0, 255, 0}; break;
-        case autophage_dsp::FilterMode::HighPass: c = {0, 0, 255}; break;
-        default: c = {0, 0, 0};
+        case autophage_dsp::FilterMode::LowPass:
+            c = {255, 0, 0};
+            break;
+        case autophage_dsp::FilterMode::BandPass:
+            c = {0, 255, 0};
+            break;
+        case autophage_dsp::FilterMode::HighPass:
+            c = {0, 0, 255};
+            break;
+        default:
+            c = {0, 0, 0};
     }
     panel.SetRingByHour(pot, 6.0f, c);
 }
@@ -74,6 +81,14 @@ static VirtualKnob p2_distortion = VirtualKnob(1, "Distortion")
                                        .Linear(0.0f, 1.0f)
                                        .Ring(Level(LedPanel::Rgb{255, 64, 0}, FillAnim::Ripple));
 
+static VirtualKnob p2_fb_time = VirtualKnob(2, "Delay Time")
+                                    .Exp(0.001f, 0.050f)
+                                    .Ring(Level(LedPanel::Rgb{128, 0, 128}, FillAnim::None));
+
+static VirtualKnob p2_dist_bias = VirtualKnob(3, "Dist Bias")
+                                      .Linear(-1.0f, 1.0f)
+                                      .Ring(Bipolar(LedPanel::Rgb{255, 64, 0}, LedPanel::Rgb{255, 64, 0}, LedPanel::Rgb{255, 255, 255}));
+
 static VirtualKnob p2_cutoff = VirtualKnob(4, "Cutoff")
                                    .Exp(60.0f, 16000.0f)
                                    .Ring(Level(LedPanel::Rgb{0, 255, 255}, FillAnim::None))
@@ -85,7 +100,7 @@ static VirtualKnob p2_res = VirtualKnob(5, "Resonance")
                                 .Overdraw(FilterModePip);
 
 static Page page1 = Page(0).Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry);
-static Page page2 = Page(1).Knobs(p2_feedback, p2_distortion, p2_cutoff, p2_res);
+static Page page2 = Page(1).Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res);
 
 static void OnRender(uint32_t t_ms) {
     if (autophage_dsp::GetMuted()) {
@@ -95,10 +110,12 @@ static void OnRender(uint32_t t_ms) {
         hw.leds.SetButtonPair(kButtonB3, {255, 255, 255});
     } else {
         if (pager.ActivePage() == 0) {
-            if (autophage_dsp::GetFeedbackRouting() == autophage_dsp::FeedbackRouting::RawInput) {
-                hw.leds.SetButtonPair(kButtonB2, {0, 0, 255});
+            if (autophage_dsp::GetInputMode() == autophage_dsp::InputMode::StereoLink) {
+                hw.leds.SetButtonPair(kButtonB2, {100, 255, 100});
+            } else if (autophage_dsp::GetInputMode() == autophage_dsp::InputMode::InternalOsc) {
+                hw.leds.SetButtonPair(kButtonB2, {0, 100, 255});
             } else {
-                hw.leds.SetButtonPair(kButtonB2, {255, 0, 0});
+                hw.leds.SetButtonPair(kButtonB2, {0, 0, 0});
             }
             hw.leds.SetButtonPair(kButtonB3, {0, 0, 0});
         } else if (pager.ActivePage() == 1) {
@@ -116,8 +133,8 @@ static void UpdateCoeffs() {
     // Handle button logic
     if (pager.ActivePage() == 0) {
         if (hw.buttons[1].RisingEdge()) {
-            auto current = autophage_dsp::GetFeedbackRouting();
-            autophage_dsp::SetFeedbackRouting(current == autophage_dsp::FeedbackRouting::RawInput ? autophage_dsp::FeedbackRouting::PostFx : autophage_dsp::FeedbackRouting::RawInput);
+            int next = (static_cast<int>(autophage_dsp::GetInputMode()) + 1) % static_cast<int>(autophage_dsp::InputMode::NumModes);
+            autophage_dsp::SetInputMode(static_cast<autophage_dsp::InputMode>(next));
         }
         if (hw.buttons[2].RisingEdge()) {
             autophage_dsp::SetMuted(!autophage_dsp::GetMuted());
@@ -137,21 +154,49 @@ static void UpdateCoeffs() {
                                   l_offset.Value(),
                                   l_symmetry.Value(),
                                   p2_feedback.Value(),
+                                  p2_fb_time.Value(),
                                   p2_distortion.Value(),
+                                  p2_dist_bias.Value(),
                                   p2_cutoff.Value(),
                                   p2_res.Value()});
+
     autophage_dsp::SetChannel(1, {r_fold.Value(),
                                   r_offset.Value(),
                                   r_symmetry.Value(),
                                   p2_feedback.Value(),
+                                  p2_fb_time.Value(),
                                   p2_distortion.Value(),
+                                  p2_dist_bias.Value(),
                                   p2_cutoff.Value(),
                                   p2_res.Value()});
+
+    if (autophage_dsp::GetInputMode() == autophage_dsp::InputMode::InternalOsc) {
+        cv_matrix.Jack(0).Off();
+        cv_matrix.Jack(1).Off();
+
+        float v_l = hw.cv[0].Volts();
+        float v_r = hw.cv[1].Volts();
+        float f_l = 130.81f * std::pow(2.0f, v_l);
+        float f_r = 130.81f * std::pow(2.0f, v_r);
+        autophage_dsp::SetOscFreq(0, f_l);
+        autophage_dsp::SetOscFreq(1, f_r);
+    } else {
+        cv_matrix.Jack(0).To(l_fold);
+        cv_matrix.Jack(1).To(r_fold);
+    }
 }
 
 int main() {
     hw.Init();
     autophage_dsp::Init(hw.SampleRate());
+
+    // Set default values for background page 2 knobs
+    pager.SetStored(1, 0, 0.0f, nullptr);  // Feedback
+    pager.SetStored(1, 1, 0.0f, nullptr);  // Distortion
+    pager.SetStored(1, 2, 0.0f, nullptr);  // Feedback Time (norm 0 = 0.001f)
+    pager.SetStored(1, 3, 0.5f, nullptr);  // Dist Bias (norm 0.5 = 0.0f)
+    pager.SetStored(1, 4, 1.0f, nullptr);  // Cutoff
+    pager.SetStored(1, 5, 0.0f, nullptr);  // Resonance
 
     /* CV routing. Map the 6 CV jacks to the 6 wave folder parameters. */
     cv_matrix.Jack(0).To(l_fold);

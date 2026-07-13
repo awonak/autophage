@@ -14,8 +14,9 @@ ChannelParams params_[2];
 
 FilterMode filter_mode_ = FilterMode::LowPass;
 DistortionRouting dist_routing_ = DistortionRouting::PreFilter;
-FeedbackRouting fb_routing_ = FeedbackRouting::RawInput;
+FeedbackRouting fb_routing_ = FeedbackRouting::PostFx;
 bool is_muted_ = false;
+InputMode input_mode_ = InputMode::Normal;
 
 struct Smoother {
     float val = 0.0f;
@@ -78,14 +79,34 @@ struct DcBlocker {
     }
 };
 
+struct DelayLine {
+    float buf[4096] = {0.0f};
+    uint32_t write_pos = 0;
+
+    float Read(float delay_samples) {
+        float read_pos = static_cast<float>(write_pos) - delay_samples;
+        if (read_pos < 0.0f) read_pos += 4096.0f;
+        uint32_t index_int = static_cast<uint32_t>(read_pos);
+        float frac = read_pos - static_cast<float>(index_int);
+        float a = buf[index_int];
+        float b = buf[(index_int + 1) & 4095];
+        return a + frac * (b - a);
+    }
+
+    void Write(float sample) {
+        buf[write_pos] = sample;
+        write_pos = (write_pos + 1) & 4095;
+    }
+};
+
 struct BazzFuss {
     float y_prev = 0.0f;
 
-    float Process(float in, float drive, DcBlocker& dc_block) {
+    float Process(float in, float drive, float bias, DcBlocker& dc_block) {
         float gain = 1.0f + drive * 20.0f;
         float k = drive * 0.99f;  // Max feedback is 0.99 for stability
 
-        float x = in * gain + y_prev * k;
+        float x = in * gain + y_prev * k + bias;
 
         float out;
         if (x > 0.0f) {
@@ -99,26 +120,43 @@ struct BazzFuss {
     }
 };
 
+struct SineOsc {
+    float phase = 0.0f;
+    float freq = 130.81f;
+    float Process(float sample_rate) {
+        float out = std::sin(phase * 2.0f * M_PI);
+        phase += freq / sample_rate;
+        if (phase >= 1.0f) phase -= 1.0f;
+        return out;
+    }
+};
+
+SineOsc osc_[2];
+
 struct ChannelState {
     Smoother fold;
     Smoother offset;
     Smoother symmetry;
     Smoother feedback;
+    Smoother feedback_time;
     Smoother distortion;
+    Smoother distortion_bias;
     Smoother filter_cutoff;
     Smoother filter_res;
 
     Svf filter;
     DcBlocker dist_dc_block;
     BazzFuss distortion_fx;
-    float fb_delay = 0.0f;
+    DelayLine fb_delay;
 
     void Init(float sample_rate) {
         fold.Init(sample_rate);
         offset.Init(sample_rate);
         symmetry.Init(sample_rate);
         feedback.Init(sample_rate);
+        feedback_time.Init(sample_rate);
         distortion.Init(sample_rate);
+        distortion_bias.Init(sample_rate);
         filter_cutoff.Init(sample_rate);
         filter_res.Init(sample_rate);
         dist_dc_block.Init(sample_rate);
@@ -128,6 +166,14 @@ struct ChannelState {
 ChannelState state_[2];
 
 }  // namespace
+
+void SetInputMode(InputMode mode) { input_mode_ = mode; }
+InputMode GetInputMode() { return input_mode_; }
+
+void SetOscFreq(uint8_t ch, float freq_hz) {
+    if (ch > 1) return;
+    osc_[ch].freq = freq_hz;
+}
 
 void SetFilterMode(FilterMode mode) { filter_mode_ = mode; }
 FilterMode GetFilterMode() { return filter_mode_; }
@@ -143,8 +189,8 @@ FeedbackRouting GetFeedbackRouting() { return fb_routing_; }
 
 void Init(float sample_rate) {
     sample_rate_hz = sample_rate;
-    params_[0] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 16000.0f, 0.0f};
-    params_[1] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 16000.0f, 0.0f};
+    params_[0] = {0.0f, 0.0f, 0.0f, 0.0f, 0.001f, 0.0f, 0.0f, 16000.0f, 0.0f};
+    params_[1] = {0.0f, 0.0f, 0.0f, 0.0f, 0.001f, 0.0f, 0.0f, 16000.0f, 0.0f};
     state_[0].Init(sample_rate);
     state_[1].Init(sample_rate);
 }
@@ -185,13 +231,23 @@ void Process(const float* const* in,
             float offset = s.offset.Process(p.offset);
             float symmetry = s.symmetry.Process(p.symmetry);
             float fb_amt = s.feedback.Process(p.feedback);
+            float fb_time = s.feedback_time.Process(p.feedback_time);
             float dist = s.distortion.Process(p.distortion);
+            float dist_bias = s.distortion_bias.Process(p.distortion_bias);
             float cutoff = s.filter_cutoff.Process(p.filter_cutoff);
             float res = s.filter_res.Process(p.filter_res);
 
-            // Feedback mixing
+            // Input Routing
             float raw_in = in[ch][i];
-            float mixed_in = raw_in + s.fb_delay * fb_amt;
+            if (input_mode_ == InputMode::InternalOsc) {
+                raw_in = osc_[ch].Process(sample_rate_hz);
+            } else if (input_mode_ == InputMode::StereoLink && ch == 1) {
+                raw_in = in[0][i];
+            }
+
+            // Feedback mixing
+            float delay_samples = fb_time * sample_rate_hz;
+            float mixed_in = raw_in + s.fb_delay.Read(delay_samples) * fb_amt;
 
             // Wave folding
             float folded = ProcessFold(mixed_in, fold, offset, symmetry);
@@ -200,18 +256,18 @@ void Process(const float* const* in,
             float fx_signal = folded;
 
             if (dist_routing_ == DistortionRouting::PreFilter) {
-                fx_signal = s.distortion_fx.Process(fx_signal, dist, s.dist_dc_block);
+                fx_signal = s.distortion_fx.Process(fx_signal, dist, dist_bias, s.dist_dc_block);
                 fx_signal = s.filter.Process(fx_signal, cutoff, res, filter_mode_);
             } else {
                 fx_signal = s.filter.Process(fx_signal, cutoff, res, filter_mode_);
-                fx_signal = s.distortion_fx.Process(fx_signal, dist, s.dist_dc_block);
+                fx_signal = s.distortion_fx.Process(fx_signal, dist, dist_bias, s.dist_dc_block);
             }
 
             // Update feedback delay
             if (fb_routing_ == FeedbackRouting::RawInput) {
-                s.fb_delay = folded;
+                s.fb_delay.Write(folded);
             } else {
-                s.fb_delay = fx_signal;
+                s.fb_delay.Write(fx_signal);
             }
 
             if (is_muted_) {

@@ -10,6 +10,13 @@
 
 namespace autophage_dsp {
 
+enum class InputMode {
+    Normal = 0,
+    StereoLink,
+    InternalOsc,
+    NumModes
+};
+
 enum class FilterMode {
     LowPass = 0,
     BandPass,
@@ -34,12 +41,17 @@ struct ChannelParams
     float offset;         // DC offset (-1..1)
     float symmetry;       // Symmetry/mix of offset (0..1)
     float feedback;       // Feedback amount (0..1)
+    float feedback_time;  // Feedback delay time (in seconds, e.g. 0.001 to 0.050)
     float distortion;     // Distortion amount (0..1)
+    float distortion_bias;// Distortion DC bias (-1..1)
     float filter_cutoff;  // Filter cutoff in Hz
     float filter_res;     // Filter resonance (0..1)
 };
 
 /** Global routing parameters */
+void SetInputMode(InputMode mode);
+InputMode GetInputMode();
+
 void SetFilterMode(FilterMode mode);
 FilterMode GetFilterMode();
 
@@ -57,6 +69,9 @@ void Init(float sample_rate);
 
 /** Update DSP parameters for one channel (0 = left, 1 = right). */
 void SetChannel(uint8_t ch, const ChannelParams& p);
+
+/** Set the frequency of the internal oscillator */
+void SetOscFreq(uint8_t ch, float freq_hz);
 
 /**
  * Audio callback processing block.
