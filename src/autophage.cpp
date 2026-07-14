@@ -103,17 +103,15 @@ static Page page1 = Page(0).Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset
 static Page page2 = Page(1).Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res);
 
 static void OnRender(uint32_t t_ms) {
-    if (autophage_dsp::GetMuted()) {
+    if (autophage_dsp::GetBypassed()) {
         for (uint8_t i = 0; i < kNumPots; i++) {
             hw.leds.ClearRing(i);
         }
-        hw.leds.SetButtonPair(kButtonB3, {255, 255, 255});
+        hw.leds.SetButtonPair(kButtonB3, {128, 128, 128});
     } else {
         if (pager.ActivePage() == 0) {
             if (autophage_dsp::GetInputMode() == autophage_dsp::InputMode::StereoLink) {
                 hw.leds.SetButtonPair(kButtonB2, {100, 255, 100});
-            } else if (autophage_dsp::GetInputMode() == autophage_dsp::InputMode::InternalOsc) {
-                hw.leds.SetButtonPair(kButtonB2, {0, 100, 255});
             } else {
                 hw.leds.SetButtonPair(kButtonB2, {0, 0, 0});
             }
@@ -121,8 +119,10 @@ static void OnRender(uint32_t t_ms) {
         } else if (pager.ActivePage() == 1) {
             if (autophage_dsp::GetDistortionRouting() == autophage_dsp::DistortionRouting::PreFilter) {
                 hw.leds.SetButtonPair(kButtonB2, {0, 0, 255});
-            } else {
+            } else if (autophage_dsp::GetDistortionRouting() == autophage_dsp::DistortionRouting::PostFilter) {
                 hw.leds.SetButtonPair(kButtonB2, {255, 0, 0});
+            } else {
+                hw.leds.SetButtonPair(kButtonB2, {0, 0, 0});
             }
             hw.leds.SetButtonPair(kButtonB3, {0, 0, 0});
         }
@@ -137,12 +137,12 @@ static void UpdateCoeffs() {
             autophage_dsp::SetInputMode(static_cast<autophage_dsp::InputMode>(next));
         }
         if (hw.buttons[2].RisingEdge()) {
-            autophage_dsp::SetMuted(!autophage_dsp::GetMuted());
+            autophage_dsp::SetBypassed(!autophage_dsp::GetBypassed());
         }
     } else if (pager.ActivePage() == 1) {
         if (hw.buttons[1].RisingEdge()) {
-            auto current = autophage_dsp::GetDistortionRouting();
-            autophage_dsp::SetDistortionRouting(current == autophage_dsp::DistortionRouting::PreFilter ? autophage_dsp::DistortionRouting::PostFilter : autophage_dsp::DistortionRouting::PreFilter);
+            int next = (static_cast<int>(autophage_dsp::GetDistortionRouting()) + 1) % static_cast<int>(autophage_dsp::DistortionRouting::NumModes);
+            autophage_dsp::SetDistortionRouting(static_cast<autophage_dsp::DistortionRouting>(next));
         }
         if (hw.buttons[2].RisingEdge()) {
             int next = (static_cast<int>(autophage_dsp::GetFilterMode()) + 1) % static_cast<int>(autophage_dsp::FilterMode::NumModes);
@@ -169,21 +169,6 @@ static void UpdateCoeffs() {
                                   p2_dist_bias.Value(),
                                   p2_cutoff.Value(),
                                   p2_res.Value()});
-
-    if (autophage_dsp::GetInputMode() == autophage_dsp::InputMode::InternalOsc) {
-        cv_matrix.Jack(0).Off();
-        cv_matrix.Jack(1).Off();
-
-        float v_l = hw.cv[0].Volts();
-        float v_r = hw.cv[1].Volts();
-        float f_l = 130.81f * std::pow(2.0f, v_l);
-        float f_r = 130.81f * std::pow(2.0f, v_r);
-        autophage_dsp::SetOscFreq(0, f_l);
-        autophage_dsp::SetOscFreq(1, f_r);
-    } else {
-        cv_matrix.Jack(0).To(l_fold);
-        cv_matrix.Jack(1).To(r_fold);
-    }
 }
 
 int main() {

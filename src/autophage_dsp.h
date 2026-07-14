@@ -13,7 +13,6 @@ namespace autophage_dsp {
 enum class InputMode {
     Normal = 0,
     StereoLink,
-    InternalOsc,
     NumModes
 };
 
@@ -25,8 +24,10 @@ enum class FilterMode {
 };
 
 enum class DistortionRouting {
-    PreFilter = 0,
-    PostFilter
+    Bypass = 0,
+    PreFilter,
+    PostFilter,
+    NumModes
 };
 
 enum class FeedbackRouting {
@@ -61,17 +62,14 @@ DistortionRouting GetDistortionRouting();
 void SetFeedbackRouting(FeedbackRouting routing);
 FeedbackRouting GetFeedbackRouting();
 
-void SetMuted(bool muted);
-bool GetMuted();
+void SetBypassed(bool bypassed);
+bool GetBypassed();
 
 /** Cache the sample rate. Call once after hw.Init(). */
 void Init(float sample_rate);
 
 /** Update DSP parameters for one channel (0 = left, 1 = right). */
 void SetChannel(uint8_t ch, const ChannelParams& p);
-
-/** Set the frequency of the internal oscillator */
-void SetOscFreq(uint8_t ch, float freq_hz);
 
 /**
  * Audio callback processing block.

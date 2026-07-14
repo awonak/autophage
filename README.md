@@ -96,6 +96,22 @@ The pinned libDaisy commit matches the one the Alchemy SDK itself vendors
 and tests against; if you bump one, consider bumping the other to match.
 
 
+## Switching Between Board Revisions (V1 / V2)
+
+The firmware leverages the `alchemy::AlchemyLab` SDK to seamlessly abstract away the hardware differences between the V1 and V2 boards. To compile and flash the firmware for a different board revision, simply change the `BOARD` parameter at the top of the `Makefile` and then clean the build directory before recompiling:
+
+1. In `Makefile`, set `BOARD ?= v1` or `BOARD ?= v2`.
+2. Run the following commands:
+
+```sh
+make clean
+make
+make program-dfu
+```
+
+> [!WARNING]
+> If you skip `make clean` when switching boards, the compiler will attempt to link stale object files from the previous board revision, resulting in an ODR violation and an immediate crash on boot.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).  libDaisy is independently MIT-licensed by

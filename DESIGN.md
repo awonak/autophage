@@ -21,8 +21,7 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
 * B2: Cycle Input Mode
   * Mode 1 (Off): Normal independent inputs
   * Mode 2 (Pale Green): Input Mult (mirrors Left input audio to Right channel)
-  * Mode 3 (Light Blue): Internal Sine Oscillators (replaces audio inputs)
-* B3: Toggle Mute (output is silent when muted)
+* B3: Toggle Bypass (passes audio input directly to output)
 
 ### Knobs
 
@@ -35,8 +34,8 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
 
 ## CV Inputs
 
-* Jack 1: Fold 1 (V/Oct Pitch 1 in Internal Osc Mode)
-* Jack 2: Fold 2 (V/Oct Pitch 2 in Internal Osc Mode)
+* Jack 1: Fold 1
+* Jack 2: Fold 2
 * Jack 3: Offset 1
 * Jack 4: Offset 2
 * Jack 5: Symmetry 1
@@ -47,8 +46,11 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
 ### Buttons
 
 * B1: Change Page
-* B2: Toggle Distortion pre/post filter
-* B3: Change Filter Mode (Low Pass, Band Pass, High Pass)
+* B2: Cycle Distortion Routing
+  * Mode 1 (Off): Bypass (No distortion)
+  * Mode 2 (Blue): Pre Filter
+  * Mode 3 (Red): Post Filter
+* B3: Cycle Filter Mode (LowPass/BandPass/HighPass)
 
 ### Knobs
 

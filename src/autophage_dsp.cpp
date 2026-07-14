@@ -13,9 +13,9 @@ float sample_rate_hz = 48000.f;
 ChannelParams params_[2];
 
 FilterMode filter_mode_ = FilterMode::LowPass;
-DistortionRouting dist_routing_ = DistortionRouting::PreFilter;
+DistortionRouting dist_routing_ = DistortionRouting::Bypass;
 FeedbackRouting fb_routing_ = FeedbackRouting::PostFx;
-bool is_muted_ = false;
+bool is_bypassed_ = false;
 InputMode input_mode_ = InputMode::Normal;
 
 struct Smoother {
@@ -120,19 +120,6 @@ struct BazzFuss {
     }
 };
 
-struct SineOsc {
-    float phase = 0.0f;
-    float freq = 130.81f;
-    float Process(float sample_rate) {
-        float out = std::sin(phase * 2.0f * M_PI);
-        phase += freq / sample_rate;
-        if (phase >= 1.0f) phase -= 1.0f;
-        return out;
-    }
-};
-
-SineOsc osc_[2];
-
 struct ChannelState {
     Smoother fold;
     Smoother offset;
@@ -170,16 +157,11 @@ ChannelState state_[2];
 void SetInputMode(InputMode mode) { input_mode_ = mode; }
 InputMode GetInputMode() { return input_mode_; }
 
-void SetOscFreq(uint8_t ch, float freq_hz) {
-    if (ch > 1) return;
-    osc_[ch].freq = freq_hz;
-}
-
 void SetFilterMode(FilterMode mode) { filter_mode_ = mode; }
 FilterMode GetFilterMode() { return filter_mode_; }
 
-void SetMuted(bool muted) { is_muted_ = muted; }
-bool GetMuted() { return is_muted_; }
+void SetBypassed(bool bypassed) { is_bypassed_ = bypassed; }
+bool GetBypassed() { return is_bypassed_; }
 
 void SetDistortionRouting(DistortionRouting routing) { dist_routing_ = routing; }
 DistortionRouting GetDistortionRouting() { return dist_routing_; }
@@ -239,9 +221,7 @@ void Process(const float* const* in,
 
             // Input Routing
             float raw_in = in[ch][i];
-            if (input_mode_ == InputMode::InternalOsc) {
-                raw_in = osc_[ch].Process(sample_rate_hz);
-            } else if (input_mode_ == InputMode::StereoLink && ch == 1) {
+            if (input_mode_ == InputMode::StereoLink && ch == 1) {
                 raw_in = in[0][i];
             }
 
@@ -255,7 +235,9 @@ void Process(const float* const* in,
             // FX Chain
             float fx_signal = folded;
 
-            if (dist_routing_ == DistortionRouting::PreFilter) {
+            if (dist_routing_ == DistortionRouting::Bypass) {
+                fx_signal = s.filter.Process(fx_signal, cutoff, res, filter_mode_);
+            } else if (dist_routing_ == DistortionRouting::PreFilter) {
                 fx_signal = s.distortion_fx.Process(fx_signal, dist, dist_bias, s.dist_dc_block);
                 fx_signal = s.filter.Process(fx_signal, cutoff, res, filter_mode_);
             } else {
@@ -270,7 +252,7 @@ void Process(const float* const* in,
                 s.fb_delay.Write(fx_signal);
             }
 
-            if (is_muted_) {
+            if (is_bypassed_) {
                 out[ch][i] = raw_in;
             } else {
                 out[ch][i] = fx_signal;
