@@ -2,11 +2,11 @@
 
 Our goal is to develop a firmware version of the Zlob Foldiplier (https://zlobmodular.com/product/foldiplier/). We will have two parallel implementations for audio input 1 and 2.
 
-The folding core of the design originates from the odd harmonics (middle)section of the Serge Wave Multiplier. The Fold knob controls the amount of times the waveform is folded in on its self (indicated by the red led window below the Fold knob). The led arc will show a gradients of red color, from less intense to more intense, indicating the number of folds.
+The folding core of the design originates from the odd harmonics (middle)section of the Serge Wave Multiplier. The Fold knob controls the amount of times the waveform is folded in on its self (indicated by the Brick Ember LED arc). The LED arc will show a gradient of Brick Ember, from less intense to more intense, indicating the number of folds.
 
-The Offset knob controls how much positive DC voltage(0 to 5v, clockwise) or negative(0 to -5v counter clockwise) DC voltage(indicated by the led window below the Offset knob, red for positive, yellow for negative) injected into the waveform via the Symmetry knob. With the Offset knob position at noon(0v) there will be little effect from the Symmetry knob. The Offset jack is expecting +5v to -5v, with knob position at noon, to scan through the positive and negative voltage. 
+The Offset knob controls how much positive DC voltage(0 to 5v, clockwise) or negative(0 to -5v counter clockwise) DC voltage is injected into the waveform via the Symmetry knob. The LED arc for Offset uses Amber for positive values and Deep Space Blue for negative values. With the Offset knob position at noon(0v) there will be little effect from the Symmetry knob. The Offset jack is expecting +5v to -5v, with knob position at noon, to scan through the positive and negative voltage. 
 
-The Symmetry knob controls the amount of negative or positive offset voltage(dependent on the Offset knob) mixed with the waveform(indicated by the yellow led window below the Symmetry jack).  If positive voltage is mixed with incoming waveform more folds will occur on the positive troughs of the waveform, likewise, when negative voltage is introduced more folds happen on the negative troughs.
+The Symmetry knob controls the amount of negative or positive offset voltage(dependent on the Offset knob) mixed with the waveform (indicated by the Pale Green LED arc).  If positive voltage is mixed with incoming waveform more folds will occur on the positive troughs of the waveform, likewise, when negative voltage is introduced more folds happen on the negative troughs.
 
 ## Audio Input
 
@@ -25,12 +25,12 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
 
 ### Knobs
 
-* Knob 1: Fold 1
-* Knob 2: Offset 1
-* Knob 3: Symmetry 1
-* Knob 4: Fold 2
-* Knob 5: Offset 2
-* Knob 6: Symmetry 2
+* Knob 1: Fold 1 (Brick Ember)
+* Knob 2: Offset 1 (Amber / Deep Space Blue)
+* Knob 3: Symmetry 1 (Pale Green)
+* Knob 4: Fold 2 (Brick Ember)
+* Knob 5: Offset 2 (Amber / Deep Space Blue)
+* Knob 6: Symmetry 2 (Pale Green)
 
 ## CV Inputs
 
@@ -48,21 +48,21 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
 * B1: Change Page
 * B2: Cycle Distortion Routing
   * Mode 1 (Off): Bypass (No distortion)
-  * Mode 2 (Blue): Pre Filter
-  * Mode 3 (Red): Post Filter
+  * Mode 2 (Dim Orange): Pre Filter
+  * Mode 3 (Dim Spruce Blue): Post Filter
 * B3: Cycle Filter Mode
-  * Mode 1 (Red): LowPass
-  * Mode 2 (Green): BandPass
-  * Mode 3 (Blue): HighPass
+  * Mode 1 (Dim Brick Ember): LowPass
+  * Mode 2 (Dim Orange): BandPass
+  * Mode 3 (Dim Spruce Blue): HighPass
 
 ### Knobs
 
-* Knob 1: Feedback 
-* Knob 2: Distortion
-* Knob 3: Feedback Delay Time
-* Knob 4: Distortion Bias / Symmetry
-* Knob 5: Filter Cutoff
-* Knob 6: Filter Resonance
+* Knob 1: Feedback (Purple)
+* Knob 2: Distortion (Orange)
+* Knob 3: Feedback Delay Time (Purple)
+* Knob 4: Distortion Bias / Symmetry (Orange)
+* Knob 5: Filter Cutoff (Spruce Blue)
+* Knob 6: Filter Resonance (Spruce Blue)
 
 # Persona
 

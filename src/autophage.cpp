@@ -12,39 +12,37 @@
 #include "alchemy/surface/settings.h"
 #include "alchemy/surface/virtual_knob.h"
 #include "autophage_dsp.h"
+#include "autophage_palette.h"
 #include "daisy_seed.h"
 
 using namespace alchemy;
+using namespace autophage::palette;
 
 /* Page 1: Left Channel */
 static VirtualKnob l_fold = VirtualKnob(0, "Fold 1")
                                 .Linear(0.0f, 1.0f)
-                                .Ring(Level(LedPanel::Rgb{255, 0, 0}, FillAnim::Pulse));
+                                .Ring(Level(kFold, FillAnim::Pulse));
 
 static VirtualKnob l_offset = VirtualKnob(2, "Offset 1")
                                   .Linear(-1.0f, 1.0f)
-                                  .Ring(Bipolar(LedPanel::Rgb{247, 149, 11},
-                                                LedPanel::Rgb{62, 143, 141},
-                                                LedPanel::Rgb{255, 255, 255}));
+                                  .Ring(Bipolar(kOffsetPos, kOffsetNeg, kOffsetCenter));
 
 static VirtualKnob l_symmetry = VirtualKnob(4, "Sym 1")
                                     .Linear(0.0f, 1.0f)
-                                    .Ring(Level(LedPanel::Rgb{104, 104, 29}, FillAnim::None));
+                                    .Ring(Level(kSymmetry, FillAnim::None));
 
 /* Page 1: Right Channel */
 static VirtualKnob r_fold = VirtualKnob(1, "Fold 2")
                                 .Linear(0.0f, 1.0f)
-                                .Ring(Level(LedPanel::Rgb{255, 0, 0}, FillAnim::Pulse));
+                                .Ring(Level(kFold, FillAnim::Pulse));
 
 static VirtualKnob r_offset = VirtualKnob(3, "Offset 2")
                                   .Linear(-1.0f, 1.0f)
-                                  .Ring(Bipolar(LedPanel::Rgb{247, 149, 11},
-                                                LedPanel::Rgb{62, 143, 141},
-                                                LedPanel::Rgb{255, 255, 255}));
+                                  .Ring(Bipolar(kOffsetPos, kOffsetNeg, kOffsetCenter));
 
 static VirtualKnob r_symmetry = VirtualKnob(5, "Sym 2")
                                     .Linear(0.0f, 1.0f)
-                                    .Ring(Level(LedPanel::Rgb{104, 104, 29}, FillAnim::None));
+                                    .Ring(Level(kSymmetry, FillAnim::None));
 
 /* Get our SDK surfaces and opt in to everything */
 static AlchemyLab hw;
@@ -57,27 +55,27 @@ static CvMatrix cv_matrix(kNumCvInputs);
 
 static VirtualKnob p2_feedback = VirtualKnob(0, "Feedback")
                                      .Linear(0.0f, 1.0f)
-                                     .Ring(Level(LedPanel::Rgb{128, 0, 128}, FillAnim::Pulse));
+                                     .Ring(Level(kFeedback, FillAnim::Pulse));
 
 static VirtualKnob p2_distortion = VirtualKnob(1, "Distortion")
                                        .Linear(0.0f, 1.0f)
-                                       .Ring(Level(LedPanel::Rgb{255, 64, 0}, FillAnim::Ripple));
+                                       .Ring(Level(kDistortion, FillAnim::Ripple));
 
 static VirtualKnob p2_fb_time = VirtualKnob(2, "Delay Time")
                                     .Exp(0.001f, 0.050f)
-                                    .Ring(Level(LedPanel::Rgb{128, 0, 128}, FillAnim::None));
+                                    .Ring(Level(kFeedback, FillAnim::None));
 
 static VirtualKnob p2_dist_bias = VirtualKnob(3, "Dist Bias")
                                       .Linear(-1.0f, 1.0f)
-                                      .Ring(Bipolar(LedPanel::Rgb{255, 64, 0}, LedPanel::Rgb{255, 64, 0}, LedPanel::Rgb{255, 255, 255}));
+                                      .Ring(Bipolar(kDistortion, kDistortion, kOffsetCenter));
 
 static VirtualKnob p2_cutoff = VirtualKnob(4, "Cutoff")
                                    .Exp(60.0f, 16000.0f)
-                                   .Ring(Level(LedPanel::Rgb{0, 255, 255}, FillAnim::None));
+                                   .Ring(Level(kFilter, FillAnim::None));
 
 static VirtualKnob p2_res = VirtualKnob(5, "Resonance")
                                 .Linear(0.0f, 1.0f)
-                                .Ring(Level(LedPanel::Rgb{0, 255, 255}, FillAnim::None));
+                                .Ring(Level(kFilter, FillAnim::None));
 
 static Page page1 = Page(0).Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry);
 static Page page2 = Page(1).Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res);
@@ -87,32 +85,32 @@ static void OnRender(uint32_t t_ms) {
         for (uint8_t i = 0; i < kNumPots; i++) {
             hw.leds.ClearRing(i);
         }
-        hw.leds.SetButtonPair(kButtonB3, {128, 128, 128});
+        hw.leds.SetButtonPair(kButtonB3, kBtnBypass);
     } else {
         if (pager.ActivePage() == 0) {
             if (autophage_dsp::GetInputMode() == autophage_dsp::InputMode::StereoLink) {
-                hw.leds.SetButtonPair(kButtonB2, {100, 255, 100});
+                hw.leds.SetButtonPair(kButtonB2, kBtnStereoLink);
             } else {
-                hw.leds.SetButtonPair(kButtonB2, {0, 0, 0});
+                hw.leds.SetButtonPair(kButtonB2, kOff);
             }
-            hw.leds.SetButtonPair(kButtonB3, {0, 0, 0});
+            hw.leds.SetButtonPair(kButtonB3, kOff);
         } else if (pager.ActivePage() == 1) {
             if (autophage_dsp::GetDistortionRouting() == autophage_dsp::DistortionRouting::PreFilter) {
-                hw.leds.SetButtonPair(kButtonB2, {0, 0, 255});
+                hw.leds.SetButtonPair(kButtonB2, kBtnDistPre);
             } else if (autophage_dsp::GetDistortionRouting() == autophage_dsp::DistortionRouting::PostFilter) {
-                hw.leds.SetButtonPair(kButtonB2, {255, 0, 0});
+                hw.leds.SetButtonPair(kButtonB2, kBtnDistPost);
             } else {
-                hw.leds.SetButtonPair(kButtonB2, {0, 0, 0});
+                hw.leds.SetButtonPair(kButtonB2, kOff);
             }
-            
+
             if (autophage_dsp::GetFilterMode() == autophage_dsp::FilterMode::LowPass) {
-                hw.leds.SetButtonPair(kButtonB3, {255, 0, 0});
+                hw.leds.SetButtonPair(kButtonB3, kBtnFilterLp);
             } else if (autophage_dsp::GetFilterMode() == autophage_dsp::FilterMode::BandPass) {
-                hw.leds.SetButtonPair(kButtonB3, {0, 255, 0});
+                hw.leds.SetButtonPair(kButtonB3, kBtnFilterBp);
             } else if (autophage_dsp::GetFilterMode() == autophage_dsp::FilterMode::HighPass) {
-                hw.leds.SetButtonPair(kButtonB3, {0, 0, 255});
+                hw.leds.SetButtonPair(kButtonB3, kBtnFilterHp);
             } else {
-                hw.leds.SetButtonPair(kButtonB3, {0, 0, 0});
+                hw.leds.SetButtonPair(kButtonB3, kOff);
             }
         }
     }
