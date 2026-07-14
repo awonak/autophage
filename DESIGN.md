@@ -50,7 +50,10 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
   * Mode 1 (Off): Bypass (No distortion)
   * Mode 2 (Blue): Pre Filter
   * Mode 3 (Red): Post Filter
-* B3: Cycle Filter Mode (LowPass/BandPass/HighPass)
+* B3: Cycle Filter Mode
+  * Mode 1 (Red): LowPass
+  * Mode 2 (Green): BandPass
+  * Mode 3 (Blue): HighPass
 
 ### Knobs
 

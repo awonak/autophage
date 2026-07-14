@@ -55,24 +55,6 @@ static Presets presets(hw.seed.qspi);
 static Settings settings(hw, &pager);
 static CvMatrix cv_matrix(kNumCvInputs);
 
-static void FilterModePip(LedPanel& panel, uint8_t pot, const ArcGeometry& geo, float norm, uint32_t t_ms, void* ctx) {
-    LedPanel::Rgb c;
-    switch (autophage_dsp::GetFilterMode()) {
-        case autophage_dsp::FilterMode::LowPass:
-            c = {255, 0, 0};
-            break;
-        case autophage_dsp::FilterMode::BandPass:
-            c = {0, 255, 0};
-            break;
-        case autophage_dsp::FilterMode::HighPass:
-            c = {0, 0, 255};
-            break;
-        default:
-            c = {0, 0, 0};
-    }
-    panel.SetRingByHour(pot, 6.0f, c);
-}
-
 static VirtualKnob p2_feedback = VirtualKnob(0, "Feedback")
                                      .Linear(0.0f, 1.0f)
                                      .Ring(Level(LedPanel::Rgb{128, 0, 128}, FillAnim::Pulse));
@@ -91,13 +73,11 @@ static VirtualKnob p2_dist_bias = VirtualKnob(3, "Dist Bias")
 
 static VirtualKnob p2_cutoff = VirtualKnob(4, "Cutoff")
                                    .Exp(60.0f, 16000.0f)
-                                   .Ring(Level(LedPanel::Rgb{0, 255, 255}, FillAnim::None))
-                                   .Overdraw(FilterModePip);
+                                   .Ring(Level(LedPanel::Rgb{0, 255, 255}, FillAnim::None));
 
 static VirtualKnob p2_res = VirtualKnob(5, "Resonance")
                                 .Linear(0.0f, 1.0f)
-                                .Ring(Level(LedPanel::Rgb{0, 255, 255}, FillAnim::None))
-                                .Overdraw(FilterModePip);
+                                .Ring(Level(LedPanel::Rgb{0, 255, 255}, FillAnim::None));
 
 static Page page1 = Page(0).Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry);
 static Page page2 = Page(1).Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res);
@@ -124,7 +104,16 @@ static void OnRender(uint32_t t_ms) {
             } else {
                 hw.leds.SetButtonPair(kButtonB2, {0, 0, 0});
             }
-            hw.leds.SetButtonPair(kButtonB3, {0, 0, 0});
+            
+            if (autophage_dsp::GetFilterMode() == autophage_dsp::FilterMode::LowPass) {
+                hw.leds.SetButtonPair(kButtonB3, {255, 0, 0});
+            } else if (autophage_dsp::GetFilterMode() == autophage_dsp::FilterMode::BandPass) {
+                hw.leds.SetButtonPair(kButtonB3, {0, 255, 0});
+            } else if (autophage_dsp::GetFilterMode() == autophage_dsp::FilterMode::HighPass) {
+                hw.leds.SetButtonPair(kButtonB3, {0, 0, 255});
+            } else {
+                hw.leds.SetButtonPair(kButtonB3, {0, 0, 0});
+            }
         }
     }
 }
