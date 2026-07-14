@@ -22,6 +22,7 @@ LIBDAISY_DIR = lib/libDaisy
 # ── App sources — yours to edit ─────────────────────────────────────────────
 CPP_SOURCES = \
     src/autophage.cpp \
+    src/autophage_palette.cpp \
     src/autophage_dsp.cpp
 
 # ── Alchemy SDK, compiled straight from the submodule ───────────────────────

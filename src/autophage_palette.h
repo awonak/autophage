@@ -35,7 +35,7 @@ constexpr Rgb kFilter = kSpruceBlue;
 /* Button Pips */
 constexpr Rgb kBtnStereoLink = kPaleGreen;
 constexpr Rgb kBtnDistPre = {0x80, 0x20, 0x00};   // Dim Orange
-constexpr Rgb kBtnDistPost = {0x09, 0x37, 0x31};  // Dim Spruce Blue
+constexpr Rgb kBtnDistPost = {0x68, 0x00, 0x00};  // Dim Brick Ember
 constexpr Rgb kBtnFilterLp = {0x68, 0x00, 0x00};  // Dim Brick Ember
 constexpr Rgb kBtnFilterBp = {0x80, 0x20, 0x00};  // Dim Orange
 constexpr Rgb kBtnFilterHp = {0x09, 0x37, 0x31};  // Dim Spruce Blue

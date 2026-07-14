@@ -49,7 +49,7 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
 * B2: Cycle Distortion Routing
   * Mode 1 (Off): Bypass (No distortion)
   * Mode 2 (Dim Orange): Pre Filter
-  * Mode 3 (Dim Spruce Blue): Post Filter
+  * Mode 3 (Dim Brick Ember): Post Filter
 * B3: Cycle Filter Mode
   * Mode 1 (Dim Brick Ember): LowPass
   * Mode 2 (Dim Orange): BandPass
