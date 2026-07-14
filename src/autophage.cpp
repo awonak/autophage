@@ -18,7 +18,7 @@
 using namespace alchemy;
 using namespace autophage::palette;
 
-/* Page 1: Left Channel */
+/* Page 1: Left Channel Wave Folder */
 static VirtualKnob l_fold = VirtualKnob(0, "Fold 1")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFold, FillAnim::Pulse));
@@ -31,7 +31,7 @@ static VirtualKnob l_symmetry = VirtualKnob(4, "Sym 1")
                                     .Linear(0.0f, 1.0f)
                                     .Ring(Level(kSymmetry, FillAnim::None));
 
-/* Page 1: Right Channel */
+/* Page 1: Right Channel Wave Folder */
 static VirtualKnob r_fold = VirtualKnob(1, "Fold 2")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFold, FillAnim::Pulse));
@@ -44,31 +44,25 @@ static VirtualKnob r_symmetry = VirtualKnob(5, "Sym 2")
                                     .Linear(0.0f, 1.0f)
                                     .Ring(Level(kSymmetry, FillAnim::None));
 
-/* Get our SDK surfaces and opt in to everything */
-static AlchemyLab hw;
-static ControlLoop loop(hw);
-static Pager pager(hw.buttons[0], 2, kNumPots);
-static ParamLock<2 * kNumPots> locks(hw.buttons[0], pager);
-static Presets presets(hw.seed.qspi);
-static Settings settings(hw, &pager);
-static CvMatrix cv_matrix(kNumCvInputs);
-
+/** Page 2: Feedback (Global) **/
 static VirtualKnob p2_feedback = VirtualKnob(0, "Feedback")
                                      .Linear(0.0f, 1.0f)
                                      .Ring(Level(kFeedback, FillAnim::Pulse));
-
-static VirtualKnob p2_distortion = VirtualKnob(1, "Distortion")
-                                       .Linear(0.0f, 1.0f)
-                                       .Ring(Level(kDistortion, FillAnim::Ripple));
 
 static VirtualKnob p2_fb_time = VirtualKnob(2, "Delay Time")
                                     .Exp(0.001f, 0.050f)
                                     .Ring(Level(kFeedback, FillAnim::None));
 
+/** Page 2: Distortion (Global) */
+static VirtualKnob p2_distortion = VirtualKnob(1, "Distortion")
+                                       .Linear(0.0f, 1.0f)
+                                       .Ring(Level(kDistortion, FillAnim::Ripple));
+
 static VirtualKnob p2_dist_bias = VirtualKnob(3, "Dist Bias")
                                       .Linear(-1.0f, 1.0f)
                                       .Ring(Bipolar(kDistortion, kDistortion, kOffsetCenter));
 
+/** Page 2: Filter (Global) */
 static VirtualKnob p2_cutoff = VirtualKnob(4, "Cutoff")
                                    .Exp(60.0f, 16000.0f)
                                    .Ring(Level(kFilter, FillAnim::None));
@@ -79,6 +73,15 @@ static VirtualKnob p2_res = VirtualKnob(5, "Resonance")
 
 static Page page1 = Page(0).Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry);
 static Page page2 = Page(1).Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res);
+
+/* Get our SDK surfaces and opt in to everything */
+static AlchemyLab hw;
+static ControlLoop loop(hw);
+static Pager pager(hw.buttons[0], 2, kNumPots);
+static ParamLock<2 * kNumPots> locks(hw.buttons[0], pager);
+static Presets presets(hw.seed.qspi);
+static Settings settings(hw, &pager);
+static CvMatrix cv_matrix(kNumCvInputs);
 
 static void OnRender(uint32_t t_ms) {
     if (autophage_dsp::GetBypassed()) {
