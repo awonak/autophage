@@ -6,11 +6,11 @@ It features two parallel independent wave folders, an integrated feedback loop, 
 
 ## Features & Operation
 
-The Fold knob controls the amount of times the waveform is folded in on itself (indicated by the Brick Ember LED arc). The LED arc displays a gradient of Brick Ember, from less intense to more intense, indicating the number of folds.
+**Wave Folding**: The Fold knob controls the amount of times the waveform is folded in on itself (indicated by the Brick Ember LED arc). The LED arc displays a gradient of Brick Ember, from less intense to more intense, indicating the number of folds.
 
-The Offset knob controls how much positive DC voltage (0 to +5V, clockwise) or negative DC voltage (0 to -5V counter-clockwise) is injected into the waveform via the Symmetry knob. The LED arc for Offset uses Amber for positive values and Space Blue for negative values. With the Offset knob position at noon (0V) there will be little effect from the Symmetry knob. The Offset jack expects +5V to -5V, with the knob position at noon, to scan through the positive and negative voltage.
+**Offset**: The Offset knob controls how much positive DC voltage (0 to +5V, clockwise) or negative DC voltage (0 to -5V counter-clockwise) is injected into the waveform via the Symmetry knob. The LED arc for Offset uses Amber for positive values and Space Blue for negative values. With the Offset knob position at noon (0V) there will be little effect from the Symmetry knob. The Offset jack expects +5V to -5V, with the knob position at noon, to scan through the positive and negative voltage.
 
-The Symmetry knob controls the amount of negative or positive offset voltage (dependent on the Offset knob) mixed with the waveform (indicated by the Pale Green LED arc). If positive voltage is mixed with incoming waveform, more folds will occur on the positive troughs of the waveform; likewise, when negative voltage is introduced, more folds happen on the negative troughs.
+**Symmetry**: The Symmetry knob controls the amount of negative or positive offset voltage (dependent on the Offset knob) mixed with the waveform (indicated by the Pale Green LED arc). If positive voltage is mixed with incoming waveform, more folds will occur on the positive troughs of the waveform; likewise, when negative voltage is introduced, more folds happen on the negative troughs.
 
 ## Audio Inputs
 
@@ -45,9 +45,24 @@ The 6 CV inputs dynamically map to the Wave Folder parameters:
 * **Jack 5**: Symmetry 1
 * **Jack 6**: Symmetry 2
 
-## Page 2: Feedback & Filter
+## Page 2: Feedback, Filter, and Distortion
 
 The second page features effects applied globally to both channels (post-folder):
+
+**Feedback**: The Feedback circuit feeds the output of the wave folder back into the input, creating complex, chaotic, or sustained tones. 
+* **Feedback Amount** controls how much of the signal is fed back.
+* **Feedback Delay Time** sets a short delay before the signal is fed back, allowing for comb-filtering and short metallic echoes.
+
+**Distortion**: A Bazz Fuss-inspired gritty distortion adds aggressive hair and buzz to the signal.
+* **Distortion Amount** controls the gain and intensity of the overdrive.
+* **Distortion Bias** offsets the signal entering the distortion circuit, affecting the symmetry of the clipping and yielding different harmonic characteristics.
+* **Button B2** lets you choose where the distortion sits in the chain: Off (bypassed), Pre-Filter, or Post-Filter.
+
+**Multi-mode Filter**: A state-variable filter shapes the overall tone of your folded output.
+* **Filter Cutoff** sweeps the cutoff frequency of the filter.
+* **Filter Resonance** emphasizes the frequencies right at the cutoff point, adding a sharp, squelchy character.
+* **Button B3** cycles through the filter modes: LowPass (cuts highs), BandPass (cuts highs and lows), and HighPass (cuts lows).
+
 
 ### Buttons
 * **B1**: Change Page
@@ -62,10 +77,10 @@ The second page features effects applied globally to both channels (post-folder)
 
 ### Knobs
 * **Knob 1**: Feedback Amount (Purple)
-* **Knob 2**: Distortion Amount (Orange)
-* **Knob 3**: Feedback Delay Time (Purple)
-* **Knob 4**: Distortion Bias / Symmetry (Orange)
-* **Knob 5**: Filter Cutoff (Spruce Blue)
+* **Knob 2**: Feedback Delay Time (Purple)
+* **Knob 3**: Filter Cutoff (Spruce Blue)
+* **Knob 4**: Distortion Amount (Orange)
+* **Knob 5**: Distortion Bias / Symmetry (Orange)
 * **Knob 6**: Filter Resonance (Spruce Blue)
 
 ---
