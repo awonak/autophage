@@ -100,21 +100,31 @@ struct DelayLine {
 };
 
 struct BazzFuss {
-    float y_prev = 0.0f;
-
+    // Models a Darlington-pair BJT + collector-base Germanium diode (Hemmo Bazz Fuss)
+    // Positive swing: transistor saturation + Germanium diode soft knee
+    // Negative swing: transistor cutoff (harder, more abrupt than saturation side)
     float Process(float in, float drive, float bias, DcBlocker& dc_block) {
-        float gain = 1.0f + drive * 20.0f;
-        float k = drive * 0.99f;  // Max feedback is 0.99 for stability
+        // Darlington pair: significantly higher gain than single BJT
+        float gain = 2.0f + drive * 50.0f;
 
-        float x = in * gain + y_prev * k + bias;
+        // Bias shifts the transistor's operating point
+        float x = in * gain + bias * 0.5f;
 
         float out;
-        if (x > 0.0f) {
-            out = 1.0f - std::exp(-x);
+        if (x >= 0.0f) {
+            // Transistor saturation path
+            float sat = 1.0f - std::exp(-x);
+            // Germanium diode clamp (~0.3V forward voltage, rounder/softer than silicon)
+            constexpr float kDiodeThreshold = 0.3f;
+            constexpr float kDiodeKnee = 0.2f;
+            if (sat > kDiodeThreshold) {
+                sat = kDiodeThreshold + kDiodeKnee * std::tanh((sat - kDiodeThreshold) / kDiodeKnee);
+            }
+            out = sat;
         } else {
-            out = -0.8f * std::tanh(-x * 1.5f);
+            // Transistor cutoff path: harder clip, models base-emitter reverse bias
+            out = -0.95f * (1.0f - std::exp(x * 0.8f));
         }
-        y_prev = out;
 
         return dc_block.Process(out);
     }
@@ -183,15 +193,15 @@ void SetChannel(uint8_t ch, const ChannelParams& p) {
 }
 
 inline float ProcessFold(float in, float fold_amount, float offset, float symmetry) {
-    float gain = 1.0f + fold_amount * 10.0f;
+    float gain = 1.0f + fold_amount * 100.0f;
     float dc_offset = offset * symmetry;
     float x = (in + dc_offset) * gain;
 
     if (std::isnan(x) || std::isinf(x)) return 0.0f;
-    if (x > 100.0f) x = 100.0f;
-    if (x < -100.0f) x = -100.0f;
+    if (x > 250.0f) x = 250.0f;
+    if (x < -250.0f) x = -250.0f;
 
-    int max_folds = 100;
+    int max_folds = 250;
     while ((x > 1.0f || x < -1.0f) && max_folds-- > 0) {
         if (x > 1.0f)
             x = 2.0f - x;
