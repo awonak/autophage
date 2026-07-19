@@ -14,7 +14,6 @@ ChannelParams params_[2];
 
 FilterMode filter_mode_ = FilterMode::LowPass;
 DistortionRouting dist_routing_ = DistortionRouting::Bypass;
-FeedbackRouting fb_routing_ = FeedbackRouting::PostFx;
 bool is_bypassed_ = false;
 InputMode input_mode_ = InputMode::Normal;
 
@@ -84,9 +83,13 @@ struct DelayLine {
     uint32_t write_pos = 0;
 
     float Read(float delay_samples) {
+        // Clamp to valid buffer range
+        if (delay_samples < 1.0f) delay_samples = 1.0f;
+        if (delay_samples > 4094.0f) delay_samples = 4094.0f;
         float read_pos = static_cast<float>(write_pos) - delay_samples;
-        if (read_pos < 0.0f) read_pos += 4096.0f;
-        uint32_t index_int = static_cast<uint32_t>(read_pos);
+        // Use fmod to handle wraparound correctly regardless of magnitude
+        if (read_pos < 0.0f) read_pos = std::fmod(read_pos, 4096.0f) + 4096.0f;
+        uint32_t index_int = static_cast<uint32_t>(read_pos) & 4095;
         float frac = read_pos - static_cast<float>(index_int);
         float a = buf[index_int];
         float b = buf[(index_int + 1) & 4095];
@@ -145,6 +148,9 @@ struct ChannelState {
     DcBlocker dist_dc_block;
     BazzFuss distortion_fx;
     DelayLine fb_delay;
+    // One-pole lowpass on the feedback tap — removes harsh transients
+    // before the signal re-enters the fold, mimicking analog RC capacitance
+    Smoother fb_filter;
 
     void Init(float sample_rate) {
         fold.Init(sample_rate);
@@ -157,6 +163,8 @@ struct ChannelState {
         filter_cutoff.Init(sample_rate);
         filter_res.Init(sample_rate);
         dist_dc_block.Init(sample_rate);
+        // ~3 ms time constant: smooths the feedback without killing its character
+        fb_filter.Init(sample_rate, 3.0f);
     }
 };
 
@@ -175,9 +183,6 @@ bool GetBypassed() { return is_bypassed_; }
 
 void SetDistortionRouting(DistortionRouting routing) { dist_routing_ = routing; }
 DistortionRouting GetDistortionRouting() { return dist_routing_; }
-
-void SetFeedbackRouting(FeedbackRouting routing) { fb_routing_ = routing; }
-FeedbackRouting GetFeedbackRouting() { return fb_routing_; }
 
 void Init(float sample_rate) {
     sample_rate_hz = sample_rate;
@@ -236,8 +241,14 @@ void Process(const float* const* in,
             }
 
             // Feedback mixing
+            // (B) Lowpass-filter the feedback tap to remove harsh high-freq transients
             float delay_samples = fb_time * sample_rate_hz;
-            float mixed_in = raw_in + s.fb_delay.Read(delay_samples) * fb_amt;
+            float fb_raw = s.fb_delay.Read(delay_samples);
+            float fb_filtered = s.fb_filter.Process(fb_raw);
+            // (C) Quadratic scale: slower approach to instability, more usable range
+            float fb_scaled = fb_amt * fb_amt;
+            // (A) Soft-clamp the mixed signal before the fold — prevents gain runaway
+            float mixed_in = std::tanh(raw_in + fb_filtered * fb_scaled);
 
             // Wave folding
             float folded = ProcessFold(mixed_in, fold, offset, symmetry);
@@ -255,12 +266,8 @@ void Process(const float* const* in,
                 fx_signal = s.distortion_fx.Process(fx_signal, dist, dist_bias, s.dist_dc_block);
             }
 
-            // Update feedback delay
-            if (fb_routing_ == FeedbackRouting::RawInput) {
-                s.fb_delay.Write(folded);
-            } else {
-                s.fb_delay.Write(fx_signal);
-            }
+            // Always feed back the post-FX signal
+            s.fb_delay.Write(fx_signal);
 
             if (is_bypassed_) {
                 out[ch][i] = raw_in;
