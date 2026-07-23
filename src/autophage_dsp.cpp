@@ -183,14 +183,34 @@ void SetChannel(uint8_t ch, const ChannelParams& p) {
 }
 
 inline float ProcessFold(float in, float fold_amount, float offset, float symmetry) {
+    // 1. Calculate overall gain and inject independent pre-fold DC bias
     float gain = 1.0f + fold_amount * 10.0f;
-    float dc_offset = offset * symmetry;
-    float x = (in + dc_offset) * gain;
+    float x = (in + offset) * gain;
 
+    // Sanity check for bad floating point values
     if (std::isnan(x) || std::isinf(x)) return 0.0f;
+
+    // 2. Apply Asymmetrical Non-Linear Drive
+    // Scale positive vs. negative halves based on bipolar symmetry parameter [-1.0 to 1.0]
+    float pos_drive = 1.0f + symmetry;
+    float neg_drive = 1.0f - symmetry;
+
+    if (x > 0.0f) {
+        x *= pos_drive;
+        x = std::tanh(x);
+    } else {
+        x *= neg_drive;
+        x = std::tanh(x);
+    }
+
+    // Re-scale back to fold range after soft saturation
+    x *= gain;
+
+    // 3. Safety Clamps
     if (x > 100.0f) x = 100.0f;
     if (x < -100.0f) x = -100.0f;
 
+    // 4. Piecewise Linear Triangle Folding Loop
     int max_folds = 100;
     while ((x > 1.0f || x < -1.0f) && max_folds-- > 0) {
         if (x > 1.0f)
@@ -198,6 +218,7 @@ inline float ProcessFold(float in, float fold_amount, float offset, float symmet
         else if (x < -1.0f)
             x = -2.0f - x;
     }
+
     return x;
 }
 

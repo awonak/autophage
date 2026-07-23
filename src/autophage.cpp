@@ -28,8 +28,8 @@ static VirtualKnob l_offset = VirtualKnob(2, "Offset 1")
                                   .Ring(Bipolar(kOffsetPos, kOffsetNeg, kOffsetCenter));
 
 static VirtualKnob l_symmetry = VirtualKnob(4, "Sym 1")
-                                    .Linear(0.0f, 1.0f)
-                                    .Ring(Level(kSymmetry, FillAnim::None));
+                                    .Linear(-1.0f, 1.0f)
+                                    .Ring(Bipolar(kSymmetryPos, kSymmetryNeg, kSymmetryCenter));
 
 /* Page 1: Right Channel Wave Folder */
 static VirtualKnob r_fold = VirtualKnob(1, "Fold 2")
@@ -41,8 +41,8 @@ static VirtualKnob r_offset = VirtualKnob(3, "Offset 2")
                                   .Ring(Bipolar(kOffsetPos, kOffsetNeg, kOffsetCenter));
 
 static VirtualKnob r_symmetry = VirtualKnob(5, "Sym 2")
-                                    .Linear(0.0f, 1.0f)
-                                    .Ring(Level(kSymmetry, FillAnim::None));
+                                    .Linear(-1.0f, 1.0f)
+                                    .Ring(Bipolar(kSymmetryPos, kSymmetryNeg, kSymmetryCenter));
 
 /** Page 2: Feedback (Global) **/
 static VirtualKnob p2_feedback = VirtualKnob(0, "Feedback")
@@ -122,19 +122,19 @@ static void OnRender(uint32_t t_ms) {
 static void UpdateCoeffs() {
     // Handle button logic
     if (pager.ActivePage() == 0) {
-        if (hw.buttons[1].RisingEdge()) {
+        if (hw.buttons[kButtonB2].RisingEdge()) {
             int next = (static_cast<int>(autophage_dsp::GetInputMode()) + 1) % static_cast<int>(autophage_dsp::InputMode::NumModes);
             autophage_dsp::SetInputMode(static_cast<autophage_dsp::InputMode>(next));
         }
-        if (hw.buttons[2].RisingEdge()) {
+        if (hw.buttons[kButtonB3].RisingEdge()) {
             autophage_dsp::SetBypassed(!autophage_dsp::GetBypassed());
         }
     } else if (pager.ActivePage() == 1) {
-        if (hw.buttons[1].RisingEdge()) {
+        if (hw.buttons[kButtonB2].RisingEdge()) {
             int next = (static_cast<int>(autophage_dsp::GetDistortionRouting()) + 1) % static_cast<int>(autophage_dsp::DistortionRouting::NumModes);
             autophage_dsp::SetDistortionRouting(static_cast<autophage_dsp::DistortionRouting>(next));
         }
-        if (hw.buttons[2].RisingEdge()) {
+        if (hw.buttons[kButtonB3].RisingEdge()) {
             int next = (static_cast<int>(autophage_dsp::GetFilterMode()) + 1) % static_cast<int>(autophage_dsp::FilterMode::NumModes);
             autophage_dsp::SetFilterMode(static_cast<autophage_dsp::FilterMode>(next));
         }

@@ -26,6 +26,9 @@ constexpr Rgb kOffsetPos = kAmber;
 constexpr Rgb kOffsetNeg = kDeepSpaceBlue;
 constexpr Rgb kOffsetCenter = kWhite;
 constexpr Rgb kSymmetry = kPaleGreen;
+constexpr Rgb kSymmetryPos = kPaleGreen;
+constexpr Rgb kSymmetryNeg = kSpruceBlue;
+constexpr Rgb kSymmetryCenter = kWhite;
 
 /* Semantic Knobs - Page 2 */
 constexpr Rgb kFeedback = kPurple;
