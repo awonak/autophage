@@ -23,26 +23,26 @@ static VirtualKnob l_fold = VirtualKnob(0, "Fold 1")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFold, FillAnim::Pulse));
 
-static VirtualKnob l_offset = VirtualKnob(2, "Offset 1")
-                                  .Linear(-1.0f, 1.0f)
-                                  .Ring(Bipolar(kOffsetPos, kOffsetNeg, kOffsetCenter));
-
-static VirtualKnob l_symmetry = VirtualKnob(4, "Sym 1")
+static VirtualKnob l_symmetry = VirtualKnob(2, "Sym 1")
                                     .Linear(-1.0f, 1.0f)
                                     .Ring(Bipolar(kSymmetryPos, kSymmetryNeg, kSymmetryCenter));
+
+static VirtualKnob l_warp = VirtualKnob(4, "Warp 1")
+                                .Linear(-1.0f, 1.0f)
+                                .Ring(Bipolar(kWarpPos, kWarpNeg, kWarpCenter));
 
 /* Page 1: Right Channel Wave Folder */
 static VirtualKnob r_fold = VirtualKnob(1, "Fold 2")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFold, FillAnim::Pulse));
 
-static VirtualKnob r_offset = VirtualKnob(3, "Offset 2")
-                                  .Linear(-1.0f, 1.0f)
-                                  .Ring(Bipolar(kOffsetPos, kOffsetNeg, kOffsetCenter));
-
-static VirtualKnob r_symmetry = VirtualKnob(5, "Sym 2")
+static VirtualKnob r_symmetry = VirtualKnob(3, "Sym 2")
                                     .Linear(-1.0f, 1.0f)
                                     .Ring(Bipolar(kSymmetryPos, kSymmetryNeg, kSymmetryCenter));
+
+static VirtualKnob r_warp = VirtualKnob(5, "Warp 2")
+                                .Linear(-1.0f, 1.0f)
+                                .Ring(Bipolar(kWarpPos, kWarpNeg, kWarpCenter));
 
 /** Page 2: Feedback (Global) **/
 static VirtualKnob p2_feedback = VirtualKnob(0, "Feedback")
@@ -60,7 +60,7 @@ static VirtualKnob p2_distortion = VirtualKnob(1, "Distortion")
 
 static VirtualKnob p2_dist_bias = VirtualKnob(3, "Dist Bias")
                                       .Linear(-1.0f, 1.0f)
-                                      .Ring(Bipolar(kDistortion, kDistortion, kOffsetCenter));
+                                      .Ring(Bipolar(kDistortion, kDistortion, kSymmetryCenter));
 
 /** Page 2: Filter (Global) */
 static VirtualKnob p2_cutoff = VirtualKnob(4, "Cutoff")
@@ -71,7 +71,7 @@ static VirtualKnob p2_res = VirtualKnob(5, "Resonance")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFilter, FillAnim::None));
 
-static Page page1 = Page(0).Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry);
+static Page page1 = Page(0).Knobs(l_fold, l_symmetry, l_warp, r_fold, r_symmetry, r_warp);
 static Page page2 = Page(1).Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res);
 
 /* Get our SDK surfaces and opt in to everything */
@@ -141,8 +141,8 @@ static void UpdateCoeffs() {
     }
 
     autophage_dsp::SetChannel(0, {l_fold.Value(),
-                                  l_offset.Value(),
                                   l_symmetry.Value(),
+                                  l_warp.Value(),
                                   p2_feedback.Value(),
                                   p2_fb_time.Value(),
                                   p2_distortion.Value(),
@@ -151,8 +151,8 @@ static void UpdateCoeffs() {
                                   p2_res.Value()});
 
     autophage_dsp::SetChannel(1, {r_fold.Value(),
-                                  r_offset.Value(),
                                   r_symmetry.Value(),
+                                  r_warp.Value(),
                                   p2_feedback.Value(),
                                   p2_fb_time.Value(),
                                   p2_distortion.Value(),
@@ -176,10 +176,10 @@ int main() {
     /* CV routing. Map the 6 CV jacks to the 6 wave folder parameters. */
     cv_matrix.Jack(0).To(l_fold);
     cv_matrix.Jack(1).To(r_fold);
-    cv_matrix.Jack(2).To(l_offset);
-    cv_matrix.Jack(3).To(r_offset);
-    cv_matrix.Jack(4).To(l_symmetry);
-    cv_matrix.Jack(5).To(r_symmetry);
+    cv_matrix.Jack(2).To(l_symmetry);
+    cv_matrix.Jack(3).To(r_symmetry);
+    cv_matrix.Jack(4).To(l_warp);
+    cv_matrix.Jack(5).To(r_warp);
 
     /* Opting into default settings gestures and controls.*/
     settings.UseBrightness();

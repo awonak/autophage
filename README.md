@@ -8,15 +8,15 @@ It features two parallel independent wave folders, an integrated feedback loop, 
 
 **Wave Folding**: The Fold knob controls the input gain and folding intensity (indicated by the Brick Ember LED arc). Turning the knob clockwise amplifies the waveform beyond the threshold limits, causing the signal peaks to fold back on themselves repeatedly to generate rich, complex harmonics.
 
-**Offset (Pre-Fold DC Bias)**: The Offset knob is a bipolar control (-1.0 to +1.0, or -5V to +5V via CV) that injects a DC voltage into the waveform *before* gain scaling, soft-saturation, and folding. 
-* Turning **clockwise** (Amber LED) shifts the waveform upward, forcing positive peaks to cross the fold threshold earlier and fold more aggressively than negative troughs.
-* Turning **counter-clockwise** (Space Blue LED) shifts the waveform downward, causing negative troughs to fold more aggressively.
-* At **noon** (0V, White LED), no DC bias is injected, preserving vertical centering.
-
 **Symmetry (Asymmetrical Drive & Saturation)**: The Symmetry knob is a bipolar control (-1.0 to +1.0) that independently scales the gain and non-linear `tanh` soft-saturation of the positive vs. negative halves of the waveform without shifting the zero-crossings.
 * Turning **clockwise** (+1.0, Pale Green LED) drives the positive half of the wave harder into soft-saturation and folding.
 * Turning **counter-clockwise** (-1.0, Spruce Blue LED) drives the negative half harder.
 * At **noon** (0.0, White LED), positive and negative halves are driven with identical, symmetric saturation.
+
+**Phase Shifting**: The Phase knob adjusts the phase of the incoming waveform prior to wave folding across a 0° to 180° range (indicated by the Steel Blue LED arc).
+* Fully **counter-clockwise** (0°, Steel Blue LED) leaves the input signal unshifted (in-phase).
+* Fully **clockwise** (180°, Steel Blue LED) shifts the phase of the waveform by 180° (polarity inversion).
+* Intermediate positions sweep the phase smoothly via an internal Hilbert All-Pass Quadrature Filter network.
 
 ---
 
@@ -36,11 +36,11 @@ It features two parallel independent wave folders, an integrated feedback loop, 
 
 ### Knobs
 * **Knob 1**: Fold 1 (Brick Ember)
-* **Knob 2**: Offset 1 (Amber / Space Blue)
-* **Knob 3**: Symmetry 1 (Pale Green / Spruce Blue)
+* **Knob 2**: Symmetry 1 (Pale Green / Spruce Blue)
+* **Knob 3**: Phase 1 (Steel Blue)
 * **Knob 4**: Fold 2 (Brick Ember)
-* **Knob 5**: Offset 2 (Amber / Space Blue)
-* **Knob 6**: Symmetry 2 (Pale Green / Spruce Blue)
+* **Knob 5**: Symmetry 2 (Pale Green / Spruce Blue)
+* **Knob 6**: Phase 2 (Steel Blue)
 
 ## CV Inputs
 
@@ -48,10 +48,10 @@ The 6 CV inputs dynamically map to the Wave Folder parameters:
 
 * **Jack 1**: Fold 1
 * **Jack 2**: Fold 2
-* **Jack 3**: Offset 1
-* **Jack 4**: Offset 2
-* **Jack 5**: Symmetry 1
-* **Jack 6**: Symmetry 2
+* **Jack 3**: Symmetry 1
+* **Jack 4**: Symmetry 2
+* **Jack 5**: Phase 1
+* **Jack 6**: Phase 2
 
 ## Page 2: Feedback, Filter, and Distortion
 
