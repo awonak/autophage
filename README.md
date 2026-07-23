@@ -6,11 +6,19 @@ It features two parallel independent wave folders, an integrated feedback loop, 
 
 ## Features & Operation
 
-**Wave Folding**: The Fold knob controls the amount of times the waveform is folded in on itself (indicated by the Brick Ember LED arc). The LED arc displays a gradient of Brick Ember, from less intense to more intense, indicating the number of folds.
+**Wave Folding**: The Fold knob controls the input gain and folding intensity (indicated by the Brick Ember LED arc). Turning the knob clockwise amplifies the waveform beyond the threshold limits, causing the signal peaks to fold back on themselves repeatedly to generate rich, complex harmonics.
 
-**Offset**: The Offset knob controls how much positive DC voltage (0 to +5V, clockwise) or negative DC voltage (0 to -5V counter-clockwise) is injected into the waveform via the Symmetry knob. The LED arc for Offset uses Amber for positive values and Space Blue for negative values. With the Offset knob position at noon (0V) there will be little effect from the Symmetry knob. The Offset jack expects +5V to -5V, with the knob position at noon, to scan through the positive and negative voltage.
+**Offset (Pre-Fold DC Bias)**: The Offset knob is a bipolar control (-1.0 to +1.0, or -5V to +5V via CV) that injects a DC voltage into the waveform *before* gain scaling, soft-saturation, and folding. 
+* Turning **clockwise** (Amber LED) shifts the waveform upward, forcing positive peaks to cross the fold threshold earlier and fold more aggressively than negative troughs.
+* Turning **counter-clockwise** (Space Blue LED) shifts the waveform downward, causing negative troughs to fold more aggressively.
+* At **noon** (0V, White LED), no DC bias is injected, preserving vertical centering.
 
-**Symmetry**: The Symmetry knob controls the amount of negative or positive offset voltage (dependent on the Offset knob) mixed with the waveform (indicated by the Pale Green LED arc). If positive voltage is mixed with incoming waveform, more folds will occur on the positive troughs of the waveform; likewise, when negative voltage is introduced, more folds happen on the negative troughs.
+**Symmetry (Asymmetrical Drive & Saturation)**: The Symmetry knob is a bipolar control (-1.0 to +1.0) that independently scales the gain and non-linear `tanh` soft-saturation of the positive vs. negative halves of the waveform without shifting the zero-crossings.
+* Turning **clockwise** (+1.0, Pale Green LED) drives the positive half of the wave harder into soft-saturation and folding.
+* Turning **counter-clockwise** (-1.0, Spruce Blue LED) drives the negative half harder.
+* At **noon** (0.0, White LED), positive and negative halves are driven with identical, symmetric saturation.
+
+---
 
 ## Audio Inputs
 
@@ -29,10 +37,10 @@ It features two parallel independent wave folders, an integrated feedback loop, 
 ### Knobs
 * **Knob 1**: Fold 1 (Brick Ember)
 * **Knob 2**: Offset 1 (Amber / Space Blue)
-* **Knob 3**: Symmetry 1 (Pale Green)
+* **Knob 3**: Symmetry 1 (Pale Green / Spruce Blue)
 * **Knob 4**: Fold 2 (Brick Ember)
 * **Knob 5**: Offset 2 (Amber / Space Blue)
-* **Knob 6**: Symmetry 2 (Pale Green)
+* **Knob 6**: Symmetry 2 (Pale Green / Spruce Blue)
 
 ## CV Inputs
 
