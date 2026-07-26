@@ -60,13 +60,15 @@ static VirtualKnob p2_distortion = VirtualKnob(1, "Distortion")
                                        .Linear(0.0f, 1.0f)
                                        .Ring(Level(kDistortion, FillAnim::Ripple));
 
-static VirtualKnob p2_dist_bias = VirtualKnob(3, "Dist Bias")
+static VirtualKnob p2_dist_bias = VirtualKnob(3, "Distortion Bias")
                                       .Linear(-1.0f, 1.0f)
+                                      .Unit("%")
                                       .Ring(Bipolar(kDistortion, kDistortion, kOffsetCenter));
 
 /** Page 2: Filter (Global) */
 static VirtualKnob p2_cutoff = VirtualKnob(4, "Cutoff")
                                    .Exp(60.0f, 16000.0f)
+                                   .Unit("Hz")
                                    .Ring(Level(kFilter, FillAnim::None));
 
 static VirtualKnob p2_res = VirtualKnob(5, "Resonance")
