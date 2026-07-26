@@ -2,6 +2,7 @@
  * autophage.cpp — Alchemy Lab dual mono wave folder.
  */
 
+#include "alchemy/host_link/host.h"
 #include "alchemy/hw/alchemy_lab.h"
 #include "alchemy/surface/control_loop.h"
 #include "alchemy/surface/cv_matrix.h"
@@ -10,6 +11,7 @@
 #include "alchemy/surface/param_lock.h"
 #include "alchemy/surface/presets.h"
 #include "alchemy/surface/settings.h"
+#include "alchemy/surface/virtual_button.h"
 #include "alchemy/surface/virtual_knob.h"
 #include "autophage_dsp.h"
 #include "autophage_palette.h"
@@ -71,8 +73,32 @@ static VirtualKnob p2_res = VirtualKnob(5, "Resonance")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFilter, FillAnim::None));
 
-static Page page1 = Page(0).Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry);
-static Page page2 = Page(1).Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res);
+static constexpr VirtualButton kButtons[] = {
+    /** Page 1 - Fold */
+    VirtualButton("p1b1", "Page / Lock")
+        .Role(VirtualButton::Role::Modal)
+        .Action("tap", "Next Page")
+        .Action("hold+knob", "Record / Nudge Param Lock"),
+    VirtualButton("p1b2", "Stereo Link")
+        .Role(VirtualButton::Role::State)
+        .Action("tap", "Toggle Mode"),
+    VirtualButton("p1b3", "Bypass")
+        .Role(VirtualButton::Role::State)
+        .Action("tap", "Toggle Effect"),
+    /** Page 2 - Destroy */
+    VirtualButton("p2b1", "Page / Lock")
+        .Role(VirtualButton::Role::Modal)
+        .Action("tap", "Next Page")
+        .Action("hold+knob", "Record / Nudge Param Lock"),
+    VirtualButton("p2b2", "Dist Routing")
+        .Role(VirtualButton::Role::State)
+        .Action("tap", "Cycle Mode Pre-Filter / Post-Filter"),
+    VirtualButton("p2b3", "Filter Mode")
+        .Role(VirtualButton::Role::State)
+        .Action("tap", "Cycle Mode")};
+
+static Page page1 = Page(0).Name("Fold").Color("#67e8f9").Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry);
+static Page page2 = Page(1).Name("Destroy").Color("#f75757").Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res);
 
 /* Get our SDK surfaces and opt in to everything */
 static AlchemyLab hw;
@@ -83,39 +109,51 @@ static Presets presets(hw.seed.qspi);
 static Settings settings(hw, &pager);
 static CvMatrix cv_matrix(kNumCvInputs);
 
+static hostlink::Host host(presets, "autophage", "Autophage Wave Folder",
+                           "0.1.0", "Alpha1");
+
+static LedPanel::Rgb FilterModeColor(autophage_dsp::FilterMode mode) {
+    switch (mode) {
+        case autophage_dsp::FilterMode::LowPass:
+            return kBtnFilterLp;
+        case autophage_dsp::FilterMode::BandPass:
+            return kBtnFilterBp;
+        case autophage_dsp::FilterMode::HighPass:
+            return kBtnFilterHp;
+        default:
+            return kOff;
+    }
+}
+
+static LedPanel::Rgb DistRoutingColor(autophage_dsp::DistortionRouting routing) {
+    switch (routing) {
+        case autophage_dsp::DistortionRouting::PreFilter:
+            return kBtnDistPre;
+        case autophage_dsp::DistortionRouting::PostFilter:
+            return kBtnDistPost;
+        default:
+            return kOff;
+    }
+}
+
 static void OnRender(uint32_t t_ms) {
     if (autophage_dsp::GetBypassed()) {
         for (uint8_t i = 0; i < kNumPots; i++) {
             hw.leds.ClearRing(i);
         }
         hw.leds.SetButtonPair(kButtonB3, kBtnBypass);
-    } else {
-        if (pager.ActivePage() == 0) {
-            if (autophage_dsp::GetInputMode() == autophage_dsp::InputMode::StereoLink) {
-                hw.leds.SetButtonPair(kButtonB2, kBtnStereoLink);
-            } else {
-                hw.leds.SetButtonPair(kButtonB2, kOff);
-            }
-            hw.leds.SetButtonPair(kButtonB3, kOff);
-        } else if (pager.ActivePage() == 1) {
-            if (autophage_dsp::GetDistortionRouting() == autophage_dsp::DistortionRouting::PreFilter) {
-                hw.leds.SetButtonPair(kButtonB2, kBtnDistPre);
-            } else if (autophage_dsp::GetDistortionRouting() == autophage_dsp::DistortionRouting::PostFilter) {
-                hw.leds.SetButtonPair(kButtonB2, kBtnDistPost);
-            } else {
-                hw.leds.SetButtonPair(kButtonB2, kOff);
-            }
+        return;
+    }
 
-            if (autophage_dsp::GetFilterMode() == autophage_dsp::FilterMode::LowPass) {
-                hw.leds.SetButtonPair(kButtonB3, kBtnFilterLp);
-            } else if (autophage_dsp::GetFilterMode() == autophage_dsp::FilterMode::BandPass) {
-                hw.leds.SetButtonPair(kButtonB3, kBtnFilterBp);
-            } else if (autophage_dsp::GetFilterMode() == autophage_dsp::FilterMode::HighPass) {
-                hw.leds.SetButtonPair(kButtonB3, kBtnFilterHp);
-            } else {
-                hw.leds.SetButtonPair(kButtonB3, kOff);
-            }
-        }
+    if (pager.ActivePage() == 0) {
+        const auto link_color = (autophage_dsp::GetInputMode() == autophage_dsp::InputMode::StereoLink)
+                                    ? kBtnStereoLink
+                                    : kOff;
+        hw.leds.SetButtonPair(kButtonB2, link_color);
+        hw.leds.SetButtonPair(kButtonB3, kOff);
+    } else if (pager.ActivePage() == 1) {
+        hw.leds.SetButtonPair(kButtonB2, DistRoutingColor(autophage_dsp::GetDistortionRouting()));
+        hw.leds.SetButtonPair(kButtonB3, FilterModeColor(autophage_dsp::GetFilterMode()));
     }
 }
 
@@ -189,11 +227,7 @@ int main() {
     presets.Manage(pager);
     presets.Manage(locks);
     presets.Manage(settings);
-    presets.Init();
-    presets.BootLoad();
-
-    UpdateCoeffs();
-    hw.StartAudio(autophage_dsp::Process);
+    presets.UseNames();
 
     /* ControlLoop is a thin, opt-in driver for the canonical control-rate frame. */
     loop.Use(pager)
@@ -202,8 +236,17 @@ int main() {
         .Use(cv_matrix)
         .Use(page1)
         .Use(page2)
+        .Use(host)
         .OnFrame(UpdateCoeffs)
         .OnRender(OnRender);
+
+    host.Buttons(kButtons, std::size(kButtons));
+
+    presets.Init();
+    presets.BootLoad();
+
+    UpdateCoeffs();
+    hw.StartAudio(autophage_dsp::Process);
 
     for (;;) loop.Tick();
 }
