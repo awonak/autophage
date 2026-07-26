@@ -75,27 +75,31 @@ static VirtualKnob p2_res = VirtualKnob(5, "Resonance")
 
 static constexpr VirtualButton kButtons[] = {
     /** Page 1 - Fold */
-    VirtualButton("p1b1", "Page / Lock")
+    VirtualButton("Page 1 Button 1", "Page / Lock")
         .Role(VirtualButton::Role::Modal)
         .Action("tap", "Next Page")
         .Action("hold+knob", "Record / Nudge Param Lock"),
-    VirtualButton("p1b2", "Stereo Link")
+    VirtualButton("Page 1 Button 2", "Stereo Link")
         .Role(VirtualButton::Role::State)
-        .Action("tap", "Toggle Mode"),
-    VirtualButton("p1b3", "Bypass")
+        .Action("tap", "Link IN L -> IN R")
+        .Controls("input_mode_", VirtualButton::Action::Cycle),
+    VirtualButton("Page 1 Button 3", "Bypass")
         .Role(VirtualButton::Role::State)
-        .Action("tap", "Toggle Effect"),
+        .Action("tap", "Bypass Effect")
+        .Controls("bypassed_", VirtualButton::Action::Toggle),
     /** Page 2 - Destroy */
-    VirtualButton("p2b1", "Page / Lock")
+    VirtualButton("Page 2 Button 1", "Page / Lock")
         .Role(VirtualButton::Role::Modal)
         .Action("tap", "Next Page")
         .Action("hold+knob", "Record / Nudge Param Lock"),
-    VirtualButton("p2b2", "Dist Routing")
+    VirtualButton("Page 2 Button 2", "Dist Routing")
         .Role(VirtualButton::Role::State)
-        .Action("tap", "Cycle Mode Pre-Filter / Post-Filter"),
-    VirtualButton("p2b3", "Filter Mode")
+        .Action("tap", "Apply Distortion Pre-Filter / Post-Filter")
+        .Controls("dist_routing_", VirtualButton::Action::Cycle),
+    VirtualButton("Page 2 Button 3", "Filter Mode")
         .Role(VirtualButton::Role::State)
-        .Action("tap", "Cycle Mode")};
+        .Action("tap", "Cycle Mode LP / BP / HP")
+        .Controls("filter_mode_", VirtualButton::Action::Cycle)};
 
 static Page page1 = Page(0).Name("Fold").Color("#67e8f9").Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry);
 static Page page2 = Page(1).Name("Destroy").Color("#f75757").Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res);
@@ -108,6 +112,46 @@ static ParamLock<2 * kNumPots> locks(hw.buttons[0], pager);
 static Presets presets(hw.seed.qspi);
 static Settings settings(hw, &pager);
 static CvMatrix cv_matrix(kNumCvInputs);
+
+struct AutophageModes : public alchemy::Serializable {
+    size_t SerializedSize() const override { return 4u; }
+
+    void Serialize(uint8_t* out) const override {
+        out[0] = static_cast<uint8_t>(autophage_dsp::GetInputMode());
+        out[1] = autophage_dsp::GetBypassed() ? 1u : 0u;
+        out[2] = static_cast<uint8_t>(autophage_dsp::GetDistortionRouting());
+        out[3] = static_cast<uint8_t>(autophage_dsp::GetFilterMode());
+    }
+
+    bool Deserialize(const uint8_t* in) override {
+        autophage_dsp::SetInputMode(static_cast<autophage_dsp::InputMode>(in[0] < static_cast<uint8_t>(autophage_dsp::InputMode::NumModes) ? in[0] : 0));
+        autophage_dsp::SetBypassed(in[1] != 0);
+        autophage_dsp::SetDistortionRouting(static_cast<autophage_dsp::DistortionRouting>(in[2] < static_cast<uint8_t>(autophage_dsp::DistortionRouting::NumModes) ? in[2] : 0));
+        autophage_dsp::SetFilterMode(static_cast<autophage_dsp::FilterMode>(in[3] < static_cast<uint8_t>(autophage_dsp::FilterMode::NumModes) ? in[3] : 0));
+        return true;
+    }
+
+    uint32_t SchemaHash() const override { return 0x4155544Fu; /* 'AUTO' */ }
+
+    bool Describe(alchemy::hostlink::ComponentWriter& w) const override {
+        w.Label("Mode Settings");
+        bool ok = w.Field("input_mode_", "Input Mode", 0,
+                          alchemy::hostlink::FieldType::Enum, 0.0f,
+                          "{\"kind\":\"enum\",\"labels\":[\"Normal\",\"Stereo Link\"]}", 2, 0);
+        ok &= w.Field("bypassed_", "Bypass", 1,
+                      alchemy::hostlink::FieldType::Enum, 0.0f,
+                      "{\"kind\":\"enum\",\"labels\":[\"Active\",\"Bypassed\"]}", 2, 0);
+        ok &= w.Field("dist_routing_", "Distortion Routing", 2,
+                      alchemy::hostlink::FieldType::Enum, 0.0f,
+                      "{\"kind\":\"enum\",\"labels\":[\"Bypass\",\"Pre-Filter\",\"Post-Filter\"]}", 3, 1);
+        ok &= w.Field("filter_mode_", "Filter Mode", 3,
+                      alchemy::hostlink::FieldType::Enum, 0.0f,
+                      "{\"kind\":\"enum\",\"labels\":[\"LowPass\",\"BandPass\",\"HighPass\"]}", 3, 1);
+        return ok;
+    }
+};
+
+static AutophageModes button_modes;
 
 static hostlink::Host host(presets, "autophage", "Autophage Wave Folder",
                            "0.1.0", "Alpha1");
@@ -227,6 +271,7 @@ int main() {
     presets.Manage(pager);
     presets.Manage(locks);
     presets.Manage(settings);
+    presets.Manage(button_modes);
     presets.UseNames();
 
     /* ControlLoop is a thin, opt-in driver for the canonical control-rate frame. */
