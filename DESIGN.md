@@ -10,8 +10,8 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
 
 ## Audio Input
 
-* Jack 1: Wave In 1
-* Jack 2: Wave In 2
+* Jack 1 (TL): Wave In 1
+* Jack 2 (BL): Wave In 2
 
 ## Page 1: Wave Folder
 
@@ -25,21 +25,21 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
 
 ### Knobs
 
-* Knob 1: Fold 1 (Brick Ember)
-* Knob 2: Offset 1 (Amber / Deep Space Blue)
-* Knob 3: Symmetry 1 (Pale Green)
-* Knob 4: Fold 2 (Brick Ember)
-* Knob 5: Offset 2 (Amber / Deep Space Blue)
-* Knob 6: Symmetry 2 (Pale Green)
+* Knob 1 (TL): Fold 1 (Brick Ember)
+* Knob 2 (ML): Offset 1 (Amber / Deep Space Blue)
+* Knob 3 (BL): Symmetry 1 (Pale Green)
+* Knob 4 (TR): Fold 2 (Brick Ember)
+* Knob 5 (MR): Offset 2 (Amber / Deep Space Blue)
+* Knob 6 (BR): Symmetry 2 (Pale Green)
 
 ## CV Inputs
 
-* Jack 1: Fold 1
-* Jack 2: Fold 2
-* Jack 3: Offset 1
-* Jack 4: Offset 2
-* Jack 5: Symmetry 1
-* Jack 6: Symmetry 2
+* Jack 1 (BL): Fold 1
+* Jack 2 (TL): Fold 2
+* Jack 3 (MB): Offset 1
+* Jack 4 (MT): Offset 2
+* Jack 5 (BR): Symmetry 1
+* Jack 6 (TR): Symmetry 2
 
 ## Page 2: Feedback & Filter (applied to both 1 & 2)
 
@@ -57,12 +57,12 @@ The Symmetry knob controls the amount of negative or positive offset voltage(dep
 
 ### Knobs
 
-* Knob 1: Feedback (Purple)
-* Knob 2: Distortion (Orange)
-* Knob 3: Feedback Delay Time (Purple)
-* Knob 4: Distortion Bias / Symmetry (Orange)
-* Knob 5: Filter Cutoff (Spruce Blue)
-* Knob 6: Filter Resonance (Spruce Blue)
+* Knob 1 (TL): Feedback (Purple)
+* Knob 2 (TR): Distortion (Orange)
+* Knob 3 (ML): Feedback Delay Time (Purple)
+* Knob 4 (MR): Distortion Bias / Symmetry (Orange)
+* Knob 5 (BL): Filter Cutoff (Spruce Blue)
+* Knob 6 (BR): Filter Resonance (Spruce Blue)
 
 # Persona
 
