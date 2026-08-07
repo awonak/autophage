@@ -6,17 +6,17 @@ It features two parallel independent wave folders, an integrated feedback loop, 
 
 ## Features & Operation
 
-**Wave Folding**: The Fold knob controls the input gain and folding intensity (indicated by the Brick Ember LED arc). Turning the knob clockwise amplifies the waveform beyond the threshold limits, causing the signal peaks to fold back on themselves repeatedly to generate rich, complex harmonics.
+**Wave Folding**: The Fold knob controls the input gain and folding intensity (indicated by the Brick Ember LED arc). Turning the knob clockwise amplifies the waveform beyond normalized threshold limits, causing the signal peaks to fold back on themselves repeatedly via a piecewise linear triangle folding loop to generate rich, complex harmonics.
 
-**Symmetry (Asymmetrical Drive & Saturation)**: The Symmetry knob is a bipolar control (-1.0 to +1.0) that independently scales the gain and non-linear `tanh` soft-saturation of the positive vs. negative halves of the waveform without shifting the zero-crossings.
-* Turning **clockwise** (+1.0, Pale Green LED) drives the positive half of the wave harder into soft-saturation and folding.
-* Turning **counter-clockwise** (-1.0, Spruce Blue LED) drives the negative half harder.
-* At **noon** (0.0, White LED), positive and negative halves are driven with identical, symmetric saturation.
+**Symmetry (Asymmetrical Drive & Saturation)**: The Symmetry knob is a bipolar control (-1.0 to +1.0) that independently scales the drive and non-linear `tanh` soft-saturation of the positive vs. negative halves of the waveform.
+* Turning **clockwise** (+1.0) drives the positive half of the wave harder into soft-saturation.
+* Turning **counter-clockwise** (-1.0) drives the negative half harder into soft-saturation.
+* At **noon** (0.0), positive and negative halves are driven with identical, symmetric saturation.
 
-**Phase Shifting**: The Phase knob adjusts the phase of the incoming waveform prior to wave folding across a 0° to 180° range (indicated by the Steel Blue LED arc).
-* Fully **counter-clockwise** (0°, Steel Blue LED) leaves the input signal unshifted (in-phase).
-* Fully **clockwise** (180°, Steel Blue LED) shifts the phase of the waveform by 180° (polarity inversion).
-* Intermediate positions sweep the phase smoothly via an internal Hilbert All-Pass Quadrature Filter network.
+**Warp (Non-Linear Slope & Curvature Distortion)**: The Warp knob is a bipolar control (-1.0 to +1.0) that reshapes the input waveform's slope and curvature prior to gain scaling and folding via a cubic polynomial function (`x = x + warp * (x³ - x)`).
+* Turning **clockwise** (+1.0) alters wave curvature outward, accentuating slopes and adding rich odd-harmonic distortion.
+* Turning **counter-clockwise** (-1.0) inverts the wave curvature, altering harmonic content prior to saturation and wave folding.
+* At **noon** (0.0), the waveform curvature remains unwarped (linear).
 
 ---
 
@@ -36,11 +36,11 @@ It features two parallel independent wave folders, an integrated feedback loop, 
 
 ### Knobs
 * **Knob 1**: Fold 1 (Brick Ember)
-* **Knob 2**: Symmetry 1 (Pale Green / Spruce Blue)
-* **Knob 3**: Phase 1 (Steel Blue)
+* **Knob 2**: Symmetry 1 (Bipolar)
+* **Knob 3**: Warp 1 (Bipolar)
 * **Knob 4**: Fold 2 (Brick Ember)
-* **Knob 5**: Symmetry 2 (Pale Green / Spruce Blue)
-* **Knob 6**: Phase 2 (Steel Blue)
+* **Knob 5**: Symmetry 2 (Bipolar)
+* **Knob 6**: Warp 2 (Bipolar)
 
 ## CV Inputs
 
@@ -50,8 +50,8 @@ The 6 CV inputs dynamically map to the Wave Folder parameters:
 * **Jack 2**: Fold 2
 * **Jack 3**: Symmetry 1
 * **Jack 4**: Symmetry 2
-* **Jack 5**: Phase 1
-* **Jack 6**: Phase 2
+* **Jack 5**: Warp 1
+* **Jack 6**: Warp 2
 
 ## Page 2: Feedback, Filter, and Distortion
 
