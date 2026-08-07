@@ -165,7 +165,15 @@ int main() {
     hw.Init();
     autophage_dsp::Init(hw.SampleRate());
 
-    // Set default values for background page 2 knobs
+    // Set default values for Page 1 knobs
+    pager.SetStored(0, 0, 0.0f, nullptr);  // Fold 1 (norm 0.0 = 0.0f, fully CCW)
+    pager.SetStored(0, 1, 0.0f, nullptr);  // Fold 2 (norm 0.0 = 0.0f, fully CCW)
+    pager.SetStored(0, 2, 0.5f, nullptr);  // Sym 1 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(0, 3, 0.5f, nullptr);  // Sym 2 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(0, 4, 0.5f, nullptr);  // Warp 1 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(0, 5, 0.5f, nullptr);  // Warp 2 (norm 0.5 = 0.0f, 12 o'clock)
+
+    // Set default values for background Page 2 knobs
     pager.SetStored(1, 0, 0.0f, nullptr);  // Feedback
     pager.SetStored(1, 1, 0.0f, nullptr);  // Distortion
     pager.SetStored(1, 2, 0.0f, nullptr);  // Feedback Time (norm 0 = 0.001f)
