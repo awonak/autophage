@@ -111,14 +111,14 @@ static VirtualButton p2_dist_routing = VirtualButton(kButtonB2, "Dist Routing")
                                            .Selector(kDistRoutingLabels)
                                            .Colors(kDistRoutingColors)
                                            .Bind(autophage_dsp::SetDistortionRouting)
-                                           .Near("dist.amount");
+                                           .Anchor("dist.amount");
 
 static VirtualButton p2_filter_mode = VirtualButton(kButtonB3, "Filter Mode")
                                           .Ident("filter_mode")
                                           .Selector(kFilterModeLabels)
                                           .Colors(kFilterModeColors)
                                           .Bind(autophage_dsp::SetFilterMode)
-                                          .Near("flt.cutoff");
+                                          .Anchor("flt.cutoff");
 
 static Page page1 = Page(0)
                         .Name("Fold")
