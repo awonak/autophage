@@ -4,6 +4,7 @@
 
 #include "alchemy/host_link/host.h"
 #include "alchemy/hw/alchemy_lab.h"
+#include "alchemy/hw/alchemy_lab_v2_layout.h"
 #include "alchemy/surface/button_bank.h"
 #include "alchemy/surface/control_loop.h"
 #include "alchemy/surface/cv_matrix.h"
@@ -22,60 +23,60 @@ using namespace alchemy;
 using namespace autophage::palette;
 
 /* Page 1: Left Channel Wave Folder */
-static VirtualKnob l_fold = VirtualKnob(0, "Fold 1")
+static VirtualKnob l_fold = VirtualKnob(kPotTopLeft, "Fold 1")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFold, FillAnim::Pulse));
 
-static VirtualKnob l_offset = VirtualKnob(2, "Offset 1")
+static VirtualKnob l_offset = VirtualKnob(kPotBottomLeft, "Offset 1")
                                   .Linear(-1.0f, 1.0f)
                                   .Ring(Bipolar(kOffsetPos, kOffsetNeg, kOffsetCenter));
 
-static VirtualKnob l_symmetry = VirtualKnob(4, "Sym 1")
+static VirtualKnob l_symmetry = VirtualKnob(kPotBottomLeft, "Sym 1")
                                     .Linear(0.0f, 1.0f)
                                     .Ring(Level(kSymmetry, FillAnim::None));
 
 /* Page 1: Right Channel Wave Folder */
-static VirtualKnob r_fold = VirtualKnob(1, "Fold 2")
+static VirtualKnob r_fold = VirtualKnob(kPotTopRight, "Fold 2")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFold, FillAnim::Pulse));
 
-static VirtualKnob r_offset = VirtualKnob(3, "Offset 2")
+static VirtualKnob r_offset = VirtualKnob(kPotMiddleRight, "Offset 2")
                                   .Linear(-1.0f, 1.0f)
                                   .Ring(Bipolar(kOffsetPos, kOffsetNeg, kOffsetCenter));
 
-static VirtualKnob r_symmetry = VirtualKnob(5, "Sym 2")
+static VirtualKnob r_symmetry = VirtualKnob(kPotBottomRight, "Sym 2")
                                     .Linear(0.0f, 1.0f)
                                     .Ring(Level(kSymmetry, FillAnim::None));
 
 /** Page 2: Feedback (Global) **/
-static VirtualKnob p2_feedback = VirtualKnob(0, "Feedback")
+static VirtualKnob p2_feedback = VirtualKnob(kPotTopLeft, "Feedback")
                                      .Linear(0.0f, 1.0f)
                                      .Ring(Level(kFeedback, FillAnim::Pulse));
 
-static VirtualKnob p2_fb_time = VirtualKnob(2, "Delay Time")
+static VirtualKnob p2_fb_time = VirtualKnob(kPotMiddleLeft, "Delay Time")
                                     .Exp(0.001f, 0.050f)
                                     .Ring(Level(kFeedback, FillAnim::None));
 
 /** Page 2: Distortion (Global) */
-static VirtualKnob p2_distortion = VirtualKnob(1, "Distortion")
+static VirtualKnob p2_distortion = VirtualKnob(kPotTopRight, "Distortion")
                                        .Ident("dist.amount")
                                        .Linear(0.0f, 1.0f)
                                        .Ring(Level(kDistortion, FillAnim::Ripple));
 
-static VirtualKnob p2_dist_bias = VirtualKnob(3, "Distortion Bias")
+static VirtualKnob p2_dist_bias = VirtualKnob(kPotMiddleRight, "Distortion Bias")
                                       .Ident("dist.bias")
                                       .Linear(-1.0f, 1.0f)
                                       .Unit("%")
                                       .Ring(Bipolar(kDistortion, kDistortion, kOffsetCenter));
 
 /** Page 2: Filter (Global) */
-static VirtualKnob p2_cutoff = VirtualKnob(4, "Cutoff")
+static VirtualKnob p2_cutoff = VirtualKnob(kPotBottomLeft, "Cutoff")
                                    .Ident("flt.cutoff")
                                    .Exp(60.0f, 16000.0f)
                                    .Unit("Hz")
                                    .Ring(Level(kFilter, FillAnim::None));
 
-static VirtualKnob p2_res = VirtualKnob(5, "Resonance")
+static VirtualKnob p2_res = VirtualKnob(kPotBottomRight, "Resonance")
                                 .Ident("flt.resonance")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFilter, FillAnim::None));
@@ -118,7 +119,7 @@ static VirtualButton p2_filter_mode = VirtualButton(kButtonB3, "Filter Mode")
                                           .Selector(kFilterModeLabels)
                                           .Colors(kFilterModeColors)
                                           .Bind(autophage_dsp::SetFilterMode)
-                                          .Anchor("flt.cutoff");
+                                          .Anchor("flt.resonance");
 
 static Page page1 = Page(0)
                         .Name("Fold")
