@@ -4,6 +4,7 @@
 
 #include "alchemy/host_link/host.h"
 #include "alchemy/hw/alchemy_lab.h"
+#include "alchemy/surface/button_bank.h"
 #include "alchemy/surface/control_loop.h"
 #include "alchemy/surface/cv_matrix.h"
 #include "alchemy/surface/page.h"
@@ -57,173 +58,102 @@ static VirtualKnob p2_fb_time = VirtualKnob(2, "Delay Time")
 
 /** Page 2: Distortion (Global) */
 static VirtualKnob p2_distortion = VirtualKnob(1, "Distortion")
+                                       .Ident("dist.amount")
                                        .Linear(0.0f, 1.0f)
                                        .Ring(Level(kDistortion, FillAnim::Ripple));
 
 static VirtualKnob p2_dist_bias = VirtualKnob(3, "Distortion Bias")
+                                      .Ident("dist.bias")
                                       .Linear(-1.0f, 1.0f)
                                       .Unit("%")
                                       .Ring(Bipolar(kDistortion, kDistortion, kOffsetCenter));
 
 /** Page 2: Filter (Global) */
 static VirtualKnob p2_cutoff = VirtualKnob(4, "Cutoff")
+                                   .Ident("flt.cutoff")
                                    .Exp(60.0f, 16000.0f)
                                    .Unit("Hz")
                                    .Ring(Level(kFilter, FillAnim::None));
 
 static VirtualKnob p2_res = VirtualKnob(5, "Resonance")
+                                .Ident("flt.resonance")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFilter, FillAnim::None));
 
-static constexpr VirtualButton kButtons[] = {
-    /** Page 1 - Fold */
-    VirtualButton("Page 1 Button 1", "Page / Lock")
-        .Role(VirtualButton::Role::Modal)
-        .Action("tap", "Next Page")
-        .Action("hold+knob", "Record / Nudge Param Lock"),
-    VirtualButton("Page 1 Button 2", "Stereo Link")
-        .Role(VirtualButton::Role::State)
-        .Action("tap", "Link IN L -> IN R")
-        .Controls("input_mode_", VirtualButton::Action::Cycle),
-    VirtualButton("Page 1 Button 3", "Bypass")
-        .Role(VirtualButton::Role::State)
-        .Action("tap", "Bypass Effect")
-        .Controls("bypassed_", VirtualButton::Action::Toggle),
-    /** Page 2 - Destroy */
-    VirtualButton("Page 2 Button 1", "Page / Lock")
-        .Role(VirtualButton::Role::Modal)
-        .Action("tap", "Next Page")
-        .Action("hold+knob", "Record / Nudge Param Lock"),
-    VirtualButton("Page 2 Button 2", "Dist Routing")
-        .Role(VirtualButton::Role::State)
-        .Action("tap", "Apply Distortion Pre-Filter / Post-Filter")
-        .Controls("dist_routing_", VirtualButton::Action::Cycle),
-    VirtualButton("Page 2 Button 3", "Filter Mode")
-        .Role(VirtualButton::Role::State)
-        .Action("tap", "Cycle Mode LP / BP / HP")
-        .Controls("filter_mode_", VirtualButton::Action::Cycle)};
+/** Page 1 Buttons */
+static const char* const kInputModeLabels[] = {"Normal", "Stereo Link"};
+static const LedPanel::Rgb kInputModeColors[] = {kOff, kBtnStereoLink};
 
-static Page page1 = Page(0).Name("Fold").Color("#67e8f9").Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry);
-static Page page2 = Page(1).Name("Destroy").Color("#f75757").Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res);
+static const char* const kBypassLabels[] = {"Active", "Bypassed"};
+static const LedPanel::Rgb kBypassColors[] = {kOff, kBtnBypass};
+
+static VirtualButton p1_link = VirtualButton(kButtonB2, "Stereo Link")
+                                   .Ident("input_mode")
+                                   .Selector(kInputModeLabels)
+                                   .Colors(kInputModeColors)
+                                   .Bind(autophage_dsp::SetInputMode);
+
+static VirtualButton p1_bypass = VirtualButton(kButtonB3, "Bypass")
+                                     .Ident("bypassed")
+                                     .Selector(kBypassLabels)
+                                     .Colors(kBypassColors)
+                                     .Bind(autophage_dsp::SetBypassed);
+
+/** Page 2 Buttons */
+static const char* const kDistRoutingLabels[] = {"Bypass", "Pre-Filter", "Post-Filter"};
+static const LedPanel::Rgb kDistRoutingColors[] = {kOff, kBtnDistPre, kBtnDistPost};
+
+static const char* const kFilterModeLabels[] = {"LowPass", "BandPass", "HighPass"};
+static const LedPanel::Rgb kFilterModeColors[] = {kBtnFilterLp, kBtnFilterBp, kBtnFilterHp};
+
+static VirtualButton p2_dist_routing = VirtualButton(kButtonB2, "Dist Routing")
+                                           .Ident("dist_routing")
+                                           .Selector(kDistRoutingLabels)
+                                           .Colors(kDistRoutingColors)
+                                           .Bind(autophage_dsp::SetDistortionRouting)
+                                           .Anchor("dist.amount");
+
+static VirtualButton p2_filter_mode = VirtualButton(kButtonB3, "Filter Mode")
+                                          .Ident("filter_mode")
+                                          .Selector(kFilterModeLabels)
+                                          .Colors(kFilterModeColors)
+                                          .Bind(autophage_dsp::SetFilterMode)
+                                          .Anchor("flt.cutoff");
+
+static Page page1 = Page(0)
+                        .Name("Fold")
+                        .Color("#67e8f9")
+                        .Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry)
+                        .Buttons(p1_link, p1_bypass);
+
+static Page page2 = Page(1)
+                        .Name("Destroy")
+                        .Color("#f75757")
+                        .Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res)
+                        .Buttons(p2_dist_routing, p2_filter_mode);
 
 /* Get our SDK surfaces and opt in to everything */
 static AlchemyLab hw;
 static ControlLoop loop(hw);
 static Pager pager(hw.buttons[0], 2, kNumPots);
 static ParamLock<2 * kNumPots> locks(hw.buttons[0], pager);
+static ButtonBank buttons;
 static Presets presets(hw.seed.qspi);
 static Settings settings(hw, &pager);
 static CvMatrix cv_matrix(kNumCvInputs);
 
-struct AutophageModes : public alchemy::Serializable {
-    size_t SerializedSize() const override { return 4u; }
-
-    void Serialize(uint8_t* out) const override {
-        out[0] = static_cast<uint8_t>(autophage_dsp::GetInputMode());
-        out[1] = autophage_dsp::GetBypassed() ? 1u : 0u;
-        out[2] = static_cast<uint8_t>(autophage_dsp::GetDistortionRouting());
-        out[3] = static_cast<uint8_t>(autophage_dsp::GetFilterMode());
-    }
-
-    bool Deserialize(const uint8_t* in) override {
-        autophage_dsp::SetInputMode(static_cast<autophage_dsp::InputMode>(in[0] < static_cast<uint8_t>(autophage_dsp::InputMode::NumModes) ? in[0] : 0));
-        autophage_dsp::SetBypassed(in[1] != 0);
-        autophage_dsp::SetDistortionRouting(static_cast<autophage_dsp::DistortionRouting>(in[2] < static_cast<uint8_t>(autophage_dsp::DistortionRouting::NumModes) ? in[2] : 0));
-        autophage_dsp::SetFilterMode(static_cast<autophage_dsp::FilterMode>(in[3] < static_cast<uint8_t>(autophage_dsp::FilterMode::NumModes) ? in[3] : 0));
-        return true;
-    }
-
-    uint32_t SchemaHash() const override { return 0x4155544Fu; /* 'AUTO' */ }
-
-    bool Describe(alchemy::hostlink::ComponentWriter& w) const override {
-        w.Label("Mode Settings");
-        bool ok = w.Field("input_mode_", "Input Mode", 0,
-                          alchemy::hostlink::FieldType::Enum, 0.0f,
-                          "{\"kind\":\"enum\",\"labels\":[\"Normal\",\"Stereo Link\"]}", 2, 0);
-        ok &= w.Field("bypassed_", "Bypass", 1,
-                      alchemy::hostlink::FieldType::Enum, 0.0f,
-                      "{\"kind\":\"enum\",\"labels\":[\"Active\",\"Bypassed\"]}", 2, 0);
-        ok &= w.Field("dist_routing_", "Distortion Routing", 2,
-                      alchemy::hostlink::FieldType::Enum, 0.0f,
-                      "{\"kind\":\"enum\",\"labels\":[\"Bypass\",\"Pre-Filter\",\"Post-Filter\"]}", 3, 1);
-        ok &= w.Field("filter_mode_", "Filter Mode", 3,
-                      alchemy::hostlink::FieldType::Enum, 0.0f,
-                      "{\"kind\":\"enum\",\"labels\":[\"LowPass\",\"BandPass\",\"HighPass\"]}", 3, 1);
-        return ok;
-    }
-};
-
-static AutophageModes button_modes;
-
 static hostlink::Host host(presets, "autophage", "Autophage Wave Folder",
                            "0.1.0", "Alpha1");
-
-static LedPanel::Rgb FilterModeColor(autophage_dsp::FilterMode mode) {
-    switch (mode) {
-        case autophage_dsp::FilterMode::LowPass:
-            return kBtnFilterLp;
-        case autophage_dsp::FilterMode::BandPass:
-            return kBtnFilterBp;
-        case autophage_dsp::FilterMode::HighPass:
-            return kBtnFilterHp;
-        default:
-            return kOff;
-    }
-}
-
-static LedPanel::Rgb DistRoutingColor(autophage_dsp::DistortionRouting routing) {
-    switch (routing) {
-        case autophage_dsp::DistortionRouting::PreFilter:
-            return kBtnDistPre;
-        case autophage_dsp::DistortionRouting::PostFilter:
-            return kBtnDistPost;
-        default:
-            return kOff;
-    }
-}
 
 static void OnRender(uint32_t t_ms) {
     if (autophage_dsp::GetBypassed()) {
         for (uint8_t i = 0; i < kNumPots; i++) {
             hw.leds.ClearRing(i);
         }
-        hw.leds.SetButtonPair(kButtonB3, kBtnBypass);
-        return;
-    }
-
-    if (pager.ActivePage() == 0) {
-        const auto link_color = (autophage_dsp::GetInputMode() == autophage_dsp::InputMode::StereoLink)
-                                    ? kBtnStereoLink
-                                    : kOff;
-        hw.leds.SetButtonPair(kButtonB2, link_color);
-        hw.leds.SetButtonPair(kButtonB3, kOff);
-    } else if (pager.ActivePage() == 1) {
-        hw.leds.SetButtonPair(kButtonB2, DistRoutingColor(autophage_dsp::GetDistortionRouting()));
-        hw.leds.SetButtonPair(kButtonB3, FilterModeColor(autophage_dsp::GetFilterMode()));
     }
 }
 
 static void UpdateCoeffs() {
-    // Handle button logic
-    if (pager.ActivePage() == 0) {
-        if (hw.buttons[1].RisingEdge()) {
-            int next = (static_cast<int>(autophage_dsp::GetInputMode()) + 1) % static_cast<int>(autophage_dsp::InputMode::NumModes);
-            autophage_dsp::SetInputMode(static_cast<autophage_dsp::InputMode>(next));
-        }
-        if (hw.buttons[2].RisingEdge()) {
-            autophage_dsp::SetBypassed(!autophage_dsp::GetBypassed());
-        }
-    } else if (pager.ActivePage() == 1) {
-        if (hw.buttons[1].RisingEdge()) {
-            int next = (static_cast<int>(autophage_dsp::GetDistortionRouting()) + 1) % static_cast<int>(autophage_dsp::DistortionRouting::NumModes);
-            autophage_dsp::SetDistortionRouting(static_cast<autophage_dsp::DistortionRouting>(next));
-        }
-        if (hw.buttons[2].RisingEdge()) {
-            int next = (static_cast<int>(autophage_dsp::GetFilterMode()) + 1) % static_cast<int>(autophage_dsp::FilterMode::NumModes);
-            autophage_dsp::SetFilterMode(static_cast<autophage_dsp::FilterMode>(next));
-        }
-    }
-
     autophage_dsp::SetChannel(0, {l_fold.Value(),
                                   l_offset.Value(),
                                   l_symmetry.Value(),
@@ -273,7 +203,7 @@ int main() {
     presets.Manage(pager);
     presets.Manage(locks);
     presets.Manage(settings);
-    presets.Manage(button_modes);
+    presets.Manage(buttons);
     presets.UseNames();
 
     /* ControlLoop is a thin, opt-in driver for the canonical control-rate frame. */
@@ -281,13 +211,12 @@ int main() {
         .Use(locks)
         .Use(settings)
         .Use(cv_matrix)
+        .Use(buttons)
         .Use(page1)
         .Use(page2)
         .Use(host)
         .OnFrame(UpdateCoeffs)
         .OnRender(OnRender);
-
-    host.Buttons(kButtons, std::size(kButtons));
 
     presets.Init();
     presets.BootLoad();
