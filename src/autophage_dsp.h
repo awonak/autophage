@@ -30,10 +30,7 @@ enum class DistortionRouting {
     NumModes
 };
 
-enum class FeedbackRouting {
-    RawInput = 0,
-    PostFx
-};
+
 
 /** Per-channel parameters for wave folding and effects. */
 struct ChannelParams
@@ -59,8 +56,7 @@ FilterMode GetFilterMode();
 void SetDistortionRouting(DistortionRouting routing);
 DistortionRouting GetDistortionRouting();
 
-void SetFeedbackRouting(FeedbackRouting routing);
-FeedbackRouting GetFeedbackRouting();
+
 
 void SetBypassed(bool bypassed);
 bool GetBypassed();
