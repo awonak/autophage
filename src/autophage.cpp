@@ -27,7 +27,7 @@ static VirtualKnob l_fold = VirtualKnob(kPotTopLeft, "Fold 1")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFold, FillAnim::Pulse));
 
-static VirtualKnob l_offset = VirtualKnob(kPotBottomLeft, "Offset 1")
+static VirtualKnob l_offset = VirtualKnob(kPotMiddleLeft, "Offset 1")
                                   .Linear(-1.0f, 1.0f)
                                   .Ring(Bipolar(kOffsetPos, kOffsetNeg, kOffsetCenter));
 
