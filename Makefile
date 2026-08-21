@@ -57,3 +57,14 @@ endif
 .PHONY: libdaisy
 libdaisy:
 	$(MAKE) -C $(LIBDAISY_DIR)
+
+# ── Flash without touching the module ───────────────────────────────────────
+# HostLink reboots the running module into the system bootloader over the
+# same USB connection the web editor uses, then dfu-util (-w waits for the
+# DFU device to enumerate) writes the app.
+USBPID ?= df11
+
+.PHONY: program-live
+program-live: all
+	node $(ALCHEMY_DIR)/tools/hostlink-cli/hostlink.mjs reboot bootloader
+	dfu-util -w -a 0 -s $(FLASH_ADDRESS):leave -D $(BUILD_DIR)/$(TARGET_BIN) -d ,0483:$(USBPID)
