@@ -196,18 +196,9 @@ inline float ProcessFold(float in, float fold_amount, float symmetry, float warp
     // Sanity check for bad floating point values
     if (std::isnan(x) || std::isinf(x)) return 0.0f;
 
-    // 3. Apply Asymmetrical Non-Linear Drive
-    // Scale positive vs. negative halves based on bipolar symmetry parameter [-1.0 to 1.0]
-    float pos_drive = 1.0f + symmetry;
-    float neg_drive = 1.0f - symmetry;
-
-    if (x > 0.0f) {
-        x *= pos_drive;
-        x = std::tanh(x);
-    } else {
-        x *= neg_drive;
-        x = std::tanh(x);
-    }
+    // 3. Apply DC offset symmetry bias (shifts waveform center before folding)
+    x += symmetry * 2.0f;
+    x = std::tanh(x);
 
     // Re-scale back to fold range after soft saturation
     x *= gain;
