@@ -22,10 +22,13 @@ constexpr Rgb kDimWhite = {0x10, 0x10, 0x10};
 
 /* Semantic Knobs - Page 1 */
 constexpr Rgb kFold = kBrickEmber;
-constexpr Rgb kOffsetPos = kAmber;
-constexpr Rgb kOffsetNeg = kDeepSpaceBlue;
-constexpr Rgb kOffsetCenter = kWhite;
 constexpr Rgb kSymmetry = kPaleGreen;
+constexpr Rgb kSymmetryPos = kPaleGreen;
+constexpr Rgb kSymmetryNeg = kSpruceBlue;
+constexpr Rgb kSymmetryCenter = kWhite;
+constexpr Rgb kWarpPos = kSteelBlue;
+constexpr Rgb kWarpNeg = kAmber;
+constexpr Rgb kWarpCenter = kWhite;
 
 /* Semantic Knobs - Page 2 */
 constexpr Rgb kFeedback = kPurple;

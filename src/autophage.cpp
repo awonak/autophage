@@ -27,26 +27,26 @@ static VirtualKnob l_fold = VirtualKnob(kPotTopLeft, "Fold 1")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFold, FillAnim::Pulse));
 
-static VirtualKnob l_offset = VirtualKnob(kPotMiddleLeft, "Offset 1")
-                                  .Linear(-1.0f, 1.0f)
-                                  .Ring(Bipolar(kOffsetPos, kOffsetNeg, kOffsetCenter));
+static VirtualKnob l_symmetry = VirtualKnob(kPotMiddleLeft, "Sym 1")
+                                    .Linear(-1.0f, 1.0f)
+                                    .Ring(Bipolar(kSymmetryPos, kSymmetryNeg, kSymmetryCenter));
 
-static VirtualKnob l_symmetry = VirtualKnob(kPotBottomLeft, "Sym 1")
-                                    .Linear(0.0f, 1.0f)
-                                    .Ring(Level(kSymmetry, FillAnim::None));
+static VirtualKnob l_warp = VirtualKnob(kPotBottomLeft, "Warp 1")
+                                .Linear(-1.0f, 1.0f)
+                                .Ring(Bipolar(kWarpPos, kWarpNeg, kWarpCenter));
 
 /* Page 1: Right Channel Wave Folder */
 static VirtualKnob r_fold = VirtualKnob(kPotTopRight, "Fold 2")
                                 .Linear(0.0f, 1.0f)
                                 .Ring(Level(kFold, FillAnim::Pulse));
 
-static VirtualKnob r_offset = VirtualKnob(kPotMiddleRight, "Offset 2")
-                                  .Linear(-1.0f, 1.0f)
-                                  .Ring(Bipolar(kOffsetPos, kOffsetNeg, kOffsetCenter));
+static VirtualKnob r_symmetry = VirtualKnob(kPotMiddleRight, "Sym 2")
+                                    .Linear(-1.0f, 1.0f)
+                                    .Ring(Bipolar(kSymmetryPos, kSymmetryNeg, kSymmetryCenter));
 
-static VirtualKnob r_symmetry = VirtualKnob(kPotBottomRight, "Sym 2")
-                                    .Linear(0.0f, 1.0f)
-                                    .Ring(Level(kSymmetry, FillAnim::None));
+static VirtualKnob r_warp = VirtualKnob(kPotBottomRight, "Warp 2")
+                                .Linear(-1.0f, 1.0f)
+                                .Ring(Bipolar(kWarpPos, kWarpNeg, kWarpCenter));
 
 /** Page 2: Feedback (Global) **/
 static VirtualKnob p2_feedback = VirtualKnob(kPotTopLeft, "Feedback")
@@ -66,8 +66,7 @@ static VirtualKnob p2_distortion = VirtualKnob(kPotTopRight, "Distortion")
 static VirtualKnob p2_dist_bias = VirtualKnob(kPotMiddleRight, "Distortion Bias")
                                       .Ident("dist.bias")
                                       .Linear(-1.0f, 1.0f)
-                                      .Unit("%")
-                                      .Ring(Bipolar(kDistortion, kDistortion, kOffsetCenter));
+                                      .Ring(Bipolar(kDistortion, kDistortion, kSymmetryCenter));
 
 /** Page 2: Filter (Global) */
 static VirtualKnob p2_cutoff = VirtualKnob(kPotBottomLeft, "Cutoff")
@@ -124,7 +123,7 @@ static VirtualButton p2_filter_mode = VirtualButton(kButtonB3, "Filter Mode")
 static Page page1 = Page(0)
                         .Name("Fold")
                         .Color("#67e8f9")
-                        .Knobs(l_fold, l_offset, l_symmetry, r_fold, r_offset, r_symmetry)
+                        .Knobs(l_fold, l_symmetry, l_warp, r_fold, r_symmetry, r_warp)
                         .Buttons(p1_link, p1_bypass);
 
 static Page page2 = Page(1)
@@ -156,8 +155,8 @@ static void OnRender(uint32_t t_ms) {
 
 static void UpdateCoeffs() {
     autophage_dsp::SetChannel(0, {l_fold.Value(),
-                                  l_offset.Value(),
                                   l_symmetry.Value(),
+                                  l_warp.Value(),
                                   p2_feedback.Value(),
                                   p2_fb_time.Value(),
                                   p2_distortion.Value(),
@@ -166,8 +165,8 @@ static void UpdateCoeffs() {
                                   p2_res.Value()});
 
     autophage_dsp::SetChannel(1, {r_fold.Value(),
-                                  r_offset.Value(),
                                   r_symmetry.Value(),
+                                  r_warp.Value(),
                                   p2_feedback.Value(),
                                   p2_fb_time.Value(),
                                   p2_distortion.Value(),
@@ -180,7 +179,15 @@ int main() {
     hw.Init();
     autophage_dsp::Init(hw.SampleRate());
 
-    // Set default values for background page 2 knobs
+    // Set default values for Page 1 knobs
+    pager.SetStored(0, 0, 0.0f, nullptr);  // Fold 1 (norm 0.0 = 0.0f, fully CCW)
+    pager.SetStored(0, 1, 0.0f, nullptr);  // Fold 2 (norm 0.0 = 0.0f, fully CCW)
+    pager.SetStored(0, 2, 0.5f, nullptr);  // Sym 1 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(0, 3, 0.5f, nullptr);  // Sym 2 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(0, 4, 0.5f, nullptr);  // Warp 1 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(0, 5, 0.5f, nullptr);  // Warp 2 (norm 0.5 = 0.0f, 12 o'clock)
+
+    // Set default values for background Page 2 knobs
     pager.SetStored(1, 0, 0.0f, nullptr);  // Feedback
     pager.SetStored(1, 1, 0.0f, nullptr);  // Distortion
     pager.SetStored(1, 2, 0.0f, nullptr);  // Feedback Time (norm 0 = 0.001f)
@@ -191,10 +198,10 @@ int main() {
     /* CV routing. Map the 6 CV jacks to the 6 wave folder parameters. */
     cv_matrix.Jack(0).To(l_fold);
     cv_matrix.Jack(1).To(r_fold);
-    cv_matrix.Jack(2).To(l_offset);
-    cv_matrix.Jack(3).To(r_offset);
-    cv_matrix.Jack(4).To(l_symmetry);
-    cv_matrix.Jack(5).To(r_symmetry);
+    cv_matrix.Jack(2).To(l_symmetry);
+    cv_matrix.Jack(3).To(r_symmetry);
+    cv_matrix.Jack(4).To(l_warp);
+    cv_matrix.Jack(5).To(r_warp);
 
     /* Opting into default settings gestures and controls.*/
     settings.UseBrightness();

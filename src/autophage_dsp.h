@@ -39,8 +39,8 @@ enum class FeedbackRouting {
 struct ChannelParams
 {
     float fold;           // Amount of wave folding (0..1)
-    float offset;         // DC offset (-1..1)
-    float symmetry;       // Symmetry/mix of offset (0..1)
+    float symmetry;       // Asymmetrical drive (-1..1)
+    float warp;           // Slope & curvature distortion (-1..1)
     float feedback;       // Feedback amount (0..1)
     float feedback_time;  // Feedback delay time (in seconds, e.g. 0.001 to 0.050)
     float distortion;     // Distortion amount (0..1)

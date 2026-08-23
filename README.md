@@ -6,11 +6,19 @@ It features two parallel independent wave folders, an integrated feedback loop, 
 
 ## Features & Operation
 
-**Wave Folding**: The Fold knob controls the amount of times the waveform is folded in on itself (indicated by the Brick Ember LED arc). The LED arc displays a gradient of Brick Ember, from less intense to more intense, indicating the number of folds.
+**Wave Folding**: The Fold knob controls the input gain and folding intensity (indicated by the Brick Ember LED arc). Turning the knob clockwise amplifies the waveform beyond normalized threshold limits, causing the signal peaks to fold back on themselves repeatedly via a piecewise linear triangle folding loop to generate rich, complex harmonics.
 
-**Offset**: The Offset knob controls how much positive DC voltage (0 to +5V, clockwise) or negative DC voltage (0 to -5V counter-clockwise) is injected into the waveform via the Symmetry knob. The LED arc for Offset uses Amber for positive values and Space Blue for negative values. With the Offset knob position at noon (0V) there will be little effect from the Symmetry knob. The Offset jack expects +5V to -5V, with the knob position at noon, to scan through the positive and negative voltage.
+**Symmetry (DC Offset Bias & Asymmetric Folding)**: The Symmetry knob is a bipolar control (-1.0 to +1.0) that injects a positive or negative DC offset bias into the waveform prior to soft saturation and wavefolding.
+* Turning **clockwise** (+1.0) shifts the waveform upwards, causing positive crests to reach folding thresholds earlier and fold more heavily.
+* Turning **counter-clockwise** (-1.0) shifts the waveform downwards, forcing negative troughs to fold more aggressively.
+* At **noon** (0.0), the signal remains centered, producing perfectly balanced, symmetrical folds.
 
-**Symmetry**: The Symmetry knob controls the amount of negative or positive offset voltage (dependent on the Offset knob) mixed with the waveform (indicated by the Pale Green LED arc). If positive voltage is mixed with incoming waveform, more folds will occur on the positive troughs of the waveform; likewise, when negative voltage is introduced, more folds happen on the negative troughs.
+**Warp (Polynomial Curve & Sigmoid Shaping)**: The Warp knob is a bipolar control (-1.0 to +1.0) that reshapes the incoming waveform's slope and inflection prior to gain scaling and folding using a cubic polynomial transfer function (`x = x + warp * (x³ - x)`):
+* Turning **counter-clockwise** (-1.0) steepens the slope through zero-crossings while flattening the peaks, morphing a sine wave into a warm, rounded square-like shape with odd-harmonic overtone presence.
+* Turning **clockwise** (+1.0) flattens the center and pulls the slopes into a pronounced cubic sigmoid S-curve on each polarity, pinching the zero-crossing region and creating steepened, sharp peaks.
+* At **noon** (0.0), the transfer function is completely linear, leaving the input waveform unwarped.
+
+---
 
 ## Audio Inputs
 
@@ -28,11 +36,11 @@ It features two parallel independent wave folders, an integrated feedback loop, 
 
 ### Knobs
 * **Knob 1**: Fold 1 (Brick Ember)
-* **Knob 2**: Offset 1 (Amber / Space Blue)
-* **Knob 3**: Symmetry 1 (Pale Green)
+* **Knob 2**: Symmetry 1 (Bipolar)
+* **Knob 3**: Warp 1 (Bipolar)
 * **Knob 4**: Fold 2 (Brick Ember)
-* **Knob 5**: Offset 2 (Amber / Space Blue)
-* **Knob 6**: Symmetry 2 (Pale Green)
+* **Knob 5**: Symmetry 2 (Bipolar)
+* **Knob 6**: Warp 2 (Bipolar)
 
 ## CV Inputs
 
@@ -40,10 +48,10 @@ The 6 CV inputs dynamically map to the Wave Folder parameters:
 
 * **Jack 1**: Fold 1
 * **Jack 2**: Fold 2
-* **Jack 3**: Offset 1
-* **Jack 4**: Offset 2
-* **Jack 5**: Symmetry 1
-* **Jack 6**: Symmetry 2
+* **Jack 3**: Symmetry 1
+* **Jack 4**: Symmetry 2
+* **Jack 5**: Warp 1
+* **Jack 6**: Warp 2
 
 ## Page 2: Feedback, Filter, and Distortion
 

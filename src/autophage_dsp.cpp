@@ -122,8 +122,8 @@ struct BazzFuss {
 
 struct ChannelState {
     Smoother fold;
-    Smoother offset;
     Smoother symmetry;
+    Smoother warp;
     Smoother feedback;
     Smoother feedback_time;
     Smoother distortion;
@@ -138,8 +138,8 @@ struct ChannelState {
 
     void Init(float sample_rate) {
         fold.Init(sample_rate);
-        offset.Init(sample_rate);
         symmetry.Init(sample_rate);
+        warp.Init(sample_rate);
         feedback.Init(sample_rate);
         feedback_time.Init(sample_rate);
         distortion.Init(sample_rate);
@@ -182,15 +182,32 @@ void SetChannel(uint8_t ch, const ChannelParams& p) {
     params_[ch] = p;
 }
 
-inline float ProcessFold(float in, float fold_amount, float offset, float symmetry) {
-    float gain = 1.0f + fold_amount * 10.0f;
-    float dc_offset = offset * symmetry;
-    float x = (in + dc_offset) * gain;
+inline float ProcessFold(float in, float fold_amount, float symmetry, float warp) {
+    // 1. Non-linear Wave Warp (slope & curvature distortion)
+    float x = in;
+    if (warp != 0.0f) {
+        x = x + warp * (x * x * x - x);
+    }
 
+    // 2. Calculate overall gain
+    float gain = 1.0f + fold_amount * 10.0f;
+    x *= gain;
+
+    // Sanity check for bad floating point values
     if (std::isnan(x) || std::isinf(x)) return 0.0f;
+
+    // 3. Apply DC offset symmetry bias (shifts waveform center before folding)
+    x += symmetry * 2.0f;
+    x = std::tanh(x);
+
+    // Re-scale back to fold range after soft saturation
+    x *= gain;
+
+    // 4. Safety Clamps
     if (x > 100.0f) x = 100.0f;
     if (x < -100.0f) x = -100.0f;
 
+    // 5. Piecewise Linear Triangle Folding Loop
     int max_folds = 100;
     while ((x > 1.0f || x < -1.0f) && max_folds-- > 0) {
         if (x > 1.0f)
@@ -198,6 +215,7 @@ inline float ProcessFold(float in, float fold_amount, float offset, float symmet
         else if (x < -1.0f)
             x = -2.0f - x;
     }
+
     return x;
 }
 
@@ -210,8 +228,8 @@ void Process(const float* const* in,
             ChannelParams& p = params_[ch];
 
             float fold = s.fold.Process(p.fold);
-            float offset = s.offset.Process(p.offset);
             float symmetry = s.symmetry.Process(p.symmetry);
+            float warp_val = s.warp.Process(p.warp);
             float fb_amt = s.feedback.Process(p.feedback);
             float fb_time = s.feedback_time.Process(p.feedback_time);
             float dist = s.distortion.Process(p.distortion);
@@ -229,8 +247,8 @@ void Process(const float* const* in,
             float delay_samples = fb_time * sample_rate_hz;
             float mixed_in = raw_in + s.fb_delay.Read(delay_samples) * fb_amt;
 
-            // Wave folding
-            float folded = ProcessFold(mixed_in, fold, offset, symmetry);
+            // Wave folding with Warp slope distortion
+            float folded = ProcessFold(mixed_in, fold, symmetry, warp_val);
 
             // FX Chain
             float fx_signal = folded;

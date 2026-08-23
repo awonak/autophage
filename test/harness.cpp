@@ -42,8 +42,8 @@ int main(int argc, char** argv) {
     // Hardcode some test parameters for the harness test
     autophage_dsp::ChannelParams params;
     params.fold = 0.0f;
-    params.offset = 0.0f;
     params.symmetry = 0.0f;
+    params.warp = 0.0f;
     params.feedback = 0.0f;
     params.distortion = 0.0f;
     params.filter_cutoff = 16000.0f;
@@ -71,8 +71,8 @@ int main(int argc, char** argv) {
         // Sweep fold from 0.0 to 1.0
         float progress = (float)i / (float)totalPCMFrameCount;
         params.fold = progress;
-        // Give left channel some offset
-        params.offset = 0.5f;
+        // Sweep warp on left channel
+        params.warp = progress;
         params.symmetry = progress;
         
         // Ramp up feedback and distortion heavily towards the end
