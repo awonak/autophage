@@ -120,6 +120,20 @@ struct BazzFuss {
     }
 };
 
+struct OnePoleLpf {
+    float val = 0.0f;
+    float coeff = 0.15f;
+
+    void Init(float sample_rate, float cutoff_hz = 1800.0f) {
+        coeff = 1.0f - std::exp(-2.0f * static_cast<float>(M_PI) * cutoff_hz / sample_rate);
+    }
+
+    float Process(float in) {
+        val += coeff * (in - val);
+        return val;
+    }
+};
+
 struct ChannelState {
     Smoother fold;
     Smoother symmetry;
@@ -133,6 +147,8 @@ struct ChannelState {
 
     Svf filter;
     DcBlocker dist_dc_block;
+    DcBlocker fb_dc_block;
+    OnePoleLpf fb_damp_filter;
     BazzFuss distortion_fx;
     DelayLine fb_delay;
 
@@ -147,6 +163,8 @@ struct ChannelState {
         filter_cutoff.Init(sample_rate);
         filter_res.Init(sample_rate);
         dist_dc_block.Init(sample_rate);
+        fb_dc_block.Init(sample_rate, 20.0f);
+        fb_damp_filter.Init(sample_rate, 1800.0f);
     }
 };
 
@@ -243,9 +261,14 @@ void Process(const float* const* in,
                 raw_in = in[0][i];
             }
 
-            // Feedback mixing
+            // Feedback mixing with damping, DC blocking, and soft saturation
             float delay_samples = fb_time * sample_rate_hz;
-            float mixed_in = raw_in + s.fb_delay.Read(delay_samples) * fb_amt;
+            float fb_raw = s.fb_delay.Read(delay_samples);
+            float fb_damped = s.fb_damp_filter.Process(fb_raw);
+            float fb_conditioned = s.fb_dc_block.Process(fb_damped);
+            float fb_clipped = std::tanh(fb_conditioned * 1.2f);
+            float fb_gain = fb_amt * fb_amt * 1.2f;
+            float mixed_in = raw_in + fb_clipped * fb_gain;
 
             // Wave folding with Warp slope distortion
             float folded = ProcessFold(mixed_in, fold, symmetry, warp_val);
