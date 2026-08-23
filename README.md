@@ -8,15 +8,15 @@ It features two parallel independent wave folders, an integrated feedback loop, 
 
 **Wave Folding**: The Fold knob controls the input gain and folding intensity (indicated by the Brick Ember LED arc). Turning the knob clockwise amplifies the waveform beyond normalized threshold limits, causing the signal peaks to fold back on themselves repeatedly via a piecewise linear triangle folding loop to generate rich, complex harmonics.
 
-**Symmetry (Asymmetrical Drive & Saturation)**: The Symmetry knob is a bipolar control (-1.0 to +1.0) that independently scales the drive and non-linear `tanh` soft-saturation of the positive vs. negative halves of the waveform.
-* Turning **clockwise** (+1.0) drives the positive half of the wave harder into soft-saturation.
-* Turning **counter-clockwise** (-1.0) drives the negative half harder into soft-saturation.
-* At **noon** (0.0), positive and negative halves are driven with identical, symmetric saturation.
+**Symmetry (DC Offset Bias & Asymmetric Folding)**: The Symmetry knob is a bipolar control (-1.0 to +1.0) that injects a positive or negative DC offset bias into the waveform prior to soft saturation and wavefolding.
+* Turning **clockwise** (+1.0) shifts the waveform upwards, causing positive crests to reach folding thresholds earlier and fold more heavily.
+* Turning **counter-clockwise** (-1.0) shifts the waveform downwards, forcing negative troughs to fold more aggressively.
+* At **noon** (0.0), the signal remains centered, producing perfectly balanced, symmetrical folds.
 
-**Warp (Non-Linear Slope & Curvature Distortion)**: The Warp knob is a bipolar control (-1.0 to +1.0) that reshapes the input waveform's slope and curvature prior to gain scaling and folding via a cubic polynomial function (`x = x + warp * (x³ - x)`).
-* Turning **clockwise** (+1.0) alters wave curvature outward, accentuating slopes and adding rich odd-harmonic distortion.
-* Turning **counter-clockwise** (-1.0) inverts the wave curvature, altering harmonic content prior to saturation and wave folding.
-* At **noon** (0.0), the waveform curvature remains unwarped (linear).
+**Warp (Polynomial Curve & Sigmoid Shaping)**: The Warp knob is a bipolar control (-1.0 to +1.0) that reshapes the incoming waveform's slope and inflection prior to gain scaling and folding using a cubic polynomial transfer function (`x = x + warp * (x³ - x)`):
+* Turning **counter-clockwise** (-1.0) steepens the slope through zero-crossings while flattening the peaks, morphing a sine wave into a warm, rounded square-like shape with odd-harmonic overtone presence.
+* Turning **clockwise** (+1.0) flattens the center and pulls the slopes into a pronounced cubic sigmoid S-curve on each polarity, pinching the zero-crossing region and creating steepened, sharp peaks.
+* At **noon** (0.0), the transfer function is completely linear, leaving the input waveform unwarped.
 
 ---
 
