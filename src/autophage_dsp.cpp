@@ -12,8 +12,7 @@ namespace {
 float sample_rate_hz = 48000.f;
 ChannelParams params_[2];
 
-FilterMode filter_mode_ = FilterMode::LowPass;
-DistortionRouting dist_routing_ = DistortionRouting::Bypass;
+DistortionRouting dist_routing_ = DistortionRouting::PreFilter;
 FeedbackRouting fb_routing_ = FeedbackRouting::PostFx;
 bool is_bypassed_ = false;
 InputMode input_mode_ = InputMode::Normal;
@@ -32,33 +31,71 @@ struct Smoother {
     }
 };
 
-struct Svf {
-    float lp = 0.0f;
-    float hp = 0.0f;
-    float bp = 0.0f;
+struct DjFilter {
+    float s1 = 0.0f;
+    float s2 = 0.0f;
 
-    float Process(float in, float cutoff_hz, float res, FilterMode mode) {
-        float q = 1.0f - res;
-        // Ensure q is never 0 to avoid self-oscillation blowup
-        if (q < 0.05f) q = 0.05f;
+    void Reset() {
+        s1 = 0.0f;
+        s2 = 0.0f;
+    }
 
-        float f = 2.0f * std::sin(M_PI * cutoff_hz / sample_rate_hz);
-        if (f > 0.99f) f = 0.99f;
-
-        lp = lp + f * bp;
-        hp = in - lp - q * bp;
-        bp = bp + f * hp;
-
-        switch (mode) {
-            case FilterMode::LowPass:
-                return lp;
-            case FilterMode::BandPass:
-                return bp;
-            case FilterMode::HighPass:
-                return hp;
-            default:
-                return lp;
+    float Process(float in, float filter_val, float q_val) {
+        // filter_val in [-1.0, 1.0]
+        float abs_val = std::abs(filter_val);
+        if (abs_val < 0.001f) {
+            s1 = 0.0f;
+            s2 = 0.0f;
+            return in;
         }
+
+        float t = abs_val; // 0.0 -> 1.0
+        float cutoff_hz;
+        if (filter_val < 0.0f) {
+            // LowPass sweep: 20000 Hz (near 0) down to 30 Hz (at -1.0)
+            cutoff_hz = 20000.0f * std::pow(30.0f / 20000.0f, t);
+        } else {
+            // HighPass sweep: 20 Hz (near 0) up to 16000 Hz (at +1.0)
+            cutoff_hz = 20.0f * std::pow(16000.0f / 20.0f, t);
+        }
+
+        float nyquist = sample_rate_hz * 0.49f;
+        if (cutoff_hz > nyquist) cutoff_hz = nyquist;
+        if (cutoff_hz < 10.0f)   cutoff_hz = 10.0f;
+
+        // Resonance: q_val = 0.0 is Butterworth (k = 1.414), 1.0 is resonant (k = 0.08)
+        float k_target = 1.414f - q_val * 1.334f;
+        if (k_target < 0.08f) k_target = 0.08f;
+
+        // Taper resonance near center to prevent low-end resonance bumps near 12 o'clock
+        float q_blend = (t < 0.08f) ? (t / 0.08f) : 1.0f;
+        float k = 1.414f + (k_target - 1.414f) * q_blend;
+
+        // 2-pole TPT (Topology-Preserving Transform) SVF
+        float g = std::tan(static_cast<float>(M_PI) * cutoff_hz / sample_rate_hz);
+        float denom = 1.0f + g * (g + k);
+
+        float hp = (in - (k + g) * s1 - s2) / denom;
+        float v1 = g * hp;
+        float bp = v1 + s1;
+        s1 = 2.0f * v1 + s1;
+        float v2 = g * bp;
+        float lp = v2 + s2;
+        s2 = 2.0f * v2 + s2;
+
+        // Flush denormals
+        if (std::abs(s1) < 1e-15f) s1 = 0.0f;
+        if (std::abs(s2) < 1e-15f) s2 = 0.0f;
+
+        float filtered = (filter_val < 0.0f) ? lp : hp;
+
+        // Smooth wet/dry crossfade across center transition
+        if (t < 0.03f) {
+            float blend = t / 0.03f;
+            return in + blend * (filtered - in);
+        }
+
+        return filtered;
     }
 };
 
@@ -102,11 +139,11 @@ struct DelayLine {
 struct BazzFuss {
     float y_prev = 0.0f;
 
-    float Process(float in, float drive, float bias, DcBlocker& dc_block) {
+    float Process(float in, float drive, DcBlocker& dc_block) {
         float gain = 1.0f + drive * 20.0f;
         float k = drive * 0.99f;  // Max feedback is 0.99 for stability
 
-        float x = in * gain + y_prev * k + bias;
+        float x = in * gain + y_prev * k;
 
         float out;
         if (x > 0.0f) {
@@ -139,13 +176,11 @@ struct ChannelState {
     Smoother symmetry;
     Smoother warp;
     Smoother feedback;
-    Smoother feedback_time;
     Smoother distortion;
-    Smoother distortion_bias;
-    Smoother filter_cutoff;
-    Smoother filter_res;
+    Smoother filter;
+    Smoother filter_q;
 
-    Svf filter;
+    DjFilter filter_fx;
     DcBlocker dist_dc_block;
     DcBlocker fb_dc_block;
     OnePoleLpf fb_damp_filter;
@@ -157,11 +192,9 @@ struct ChannelState {
         symmetry.Init(sample_rate);
         warp.Init(sample_rate);
         feedback.Init(sample_rate);
-        feedback_time.Init(sample_rate);
         distortion.Init(sample_rate);
-        distortion_bias.Init(sample_rate);
-        filter_cutoff.Init(sample_rate);
-        filter_res.Init(sample_rate);
+        filter.Init(sample_rate);
+        filter_q.Init(sample_rate);
         dist_dc_block.Init(sample_rate);
         fb_dc_block.Init(sample_rate, 20.0f);
         fb_damp_filter.Init(sample_rate, 1800.0f);
@@ -175,9 +208,6 @@ ChannelState state_[2];
 void SetInputMode(InputMode mode) { input_mode_ = mode; }
 InputMode GetInputMode() { return input_mode_; }
 
-void SetFilterMode(FilterMode mode) { filter_mode_ = mode; }
-FilterMode GetFilterMode() { return filter_mode_; }
-
 void SetBypassed(bool bypassed) { is_bypassed_ = bypassed; }
 bool GetBypassed() { return is_bypassed_; }
 
@@ -189,8 +219,8 @@ FeedbackRouting GetFeedbackRouting() { return fb_routing_; }
 
 void Init(float sample_rate) {
     sample_rate_hz = sample_rate;
-    params_[0] = {0.0f, 0.0f, 0.0f, 0.0f, 0.001f, 0.0f, 0.0f, 16000.0f, 0.0f};
-    params_[1] = {0.0f, 0.0f, 0.0f, 0.0f, 0.001f, 0.0f, 0.0f, 16000.0f, 0.0f};
+    params_[0] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+    params_[1] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
     state_[0].Init(sample_rate);
     state_[1].Init(sample_rate);
 }
@@ -240,6 +270,7 @@ inline float ProcessFold(float in, float fold_amount, float symmetry, float warp
 void Process(const float* const* in,
              float** out,
              size_t n) {
+    const float kFbDelaySamples = 72.0f;  // ~1.5ms analog-style delay tap
     for (size_t i = 0; i < n; i++) {
         for (int ch = 0; ch < 2; ch++) {
             ChannelState& s = state_[ch];
@@ -249,11 +280,9 @@ void Process(const float* const* in,
             float symmetry = s.symmetry.Process(p.symmetry);
             float warp_val = s.warp.Process(p.warp);
             float fb_amt = s.feedback.Process(p.feedback);
-            float fb_time = s.feedback_time.Process(p.feedback_time);
             float dist = s.distortion.Process(p.distortion);
-            float dist_bias = s.distortion_bias.Process(p.distortion_bias);
-            float cutoff = s.filter_cutoff.Process(p.filter_cutoff);
-            float res = s.filter_res.Process(p.filter_res);
+            float flt_val = s.filter.Process(p.filter);
+            float flt_q = s.filter_q.Process(p.filter_q);
 
             // Input Routing
             float raw_in = in[ch][i];
@@ -262,8 +291,7 @@ void Process(const float* const* in,
             }
 
             // Feedback mixing with damping, DC blocking, and soft saturation
-            float delay_samples = fb_time * sample_rate_hz;
-            float fb_raw = s.fb_delay.Read(delay_samples);
+            float fb_raw = s.fb_delay.Read(kFbDelaySamples);
             float fb_damped = s.fb_damp_filter.Process(fb_raw);
             float fb_conditioned = s.fb_dc_block.Process(fb_damped);
             float fb_clipped = std::tanh(fb_conditioned * 1.2f);
@@ -276,14 +304,12 @@ void Process(const float* const* in,
             // FX Chain
             float fx_signal = folded;
 
-            if (dist_routing_ == DistortionRouting::Bypass) {
-                fx_signal = s.filter.Process(fx_signal, cutoff, res, filter_mode_);
-            } else if (dist_routing_ == DistortionRouting::PreFilter) {
-                fx_signal = s.distortion_fx.Process(fx_signal, dist, dist_bias, s.dist_dc_block);
-                fx_signal = s.filter.Process(fx_signal, cutoff, res, filter_mode_);
+            if (dist_routing_ == DistortionRouting::PreFilter) {
+                fx_signal = s.distortion_fx.Process(fx_signal, dist, s.dist_dc_block);
+                fx_signal = s.filter_fx.Process(fx_signal, flt_val, flt_q);
             } else {
-                fx_signal = s.filter.Process(fx_signal, cutoff, res, filter_mode_);
-                fx_signal = s.distortion_fx.Process(fx_signal, dist, dist_bias, s.dist_dc_block);
+                fx_signal = s.filter_fx.Process(fx_signal, flt_val, flt_q);
+                fx_signal = s.distortion_fx.Process(fx_signal, dist, s.dist_dc_block);
             }
 
             // Update feedback delay

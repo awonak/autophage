@@ -53,43 +53,40 @@ The 6 CV inputs dynamically map to the Wave Folder parameters:
 * **Jack 5**: Warp 1
 * **Jack 6**: Warp 2
 
-## Page 2: Feedback, Filter, and Distortion
+## Page 2: Feedback, Distortion, and Filter
 
-The second page features effects applied globally to both channels (post-folder):
+The second page provides dedicated per-channel effects for Channel 1 (Left) and Channel 2 (Right):
 
-**Feedback**: The Feedback circuit feeds the output of the wave folder back into the input, creating complex, chaotic, or sustained tones. 
-* **Feedback Amount** controls how much of the signal is fed back.
-* **Feedback Delay Time** sets a short delay before the signal is fed back, allowing for comb-filtering and short metallic echoes.
+**Feedback**: Feeds the output of the wave folder back into the input through an analog-modeled 1.8 kHz damping filter, 20 Hz DC blocker, and `tanh` soft-saturation to produce a deep, low-end growl and harmonic self-oscillation.
+* **Feedback 1 & 2** independently control the feedback intensity for each channel.
 
-**Distortion**: A Bazz Fuss-inspired gritty distortion adds aggressive hair and buzz to the signal.
-* **Distortion Amount** controls the gain and intensity of the overdrive.
-* **Distortion Bias** offsets the signal entering the distortion circuit, affecting the symmetry of the clipping and yielding different harmonic characteristics.
-* **Button B2** lets you choose where the distortion sits in the chain: Off (bypassed), Pre-Filter, or Post-Filter.
+**Distortion**: A gritty Bazz Fuss-inspired overdrive circuit adds heavy harmonic crunch and grit.
+* **Distortion 1 & 2** independently control overdrive gain.
+* **Button B2** selects whether distortion is placed **Pre-Filter** or **Post-Filter** in the processing chain.
 
-**Multi-mode Filter**: A state-variable filter shapes the overall tone of your folded output.
-* **Filter Cutoff** sweeps the cutoff frequency of the filter.
-* **Filter Resonance** emphasizes the frequencies right at the cutoff point, adding a sharp, squelchy character.
-* **Button B3** cycles through the filter modes: LowPass (cuts highs), BandPass (cuts highs and lows), and HighPass (cuts lows).
-
+**Filter**: A bipolar state-variable DJ filter that provides seamless spectral sculpting.
+* **Filter 1 & 2** provide independent bipolar frequency filtering:
+  * **At Noon (0.0)**: Transparent neutral bypass (flat passthrough).
+  * **Counter-Clockwise (CCW)**: Low-Pass Filter (LPF) sweeping cutoff from ~16 kHz down to ~60 Hz.
+  * **Clockwise (CW)**: High-Pass Filter (HPF) sweeping cutoff from ~40 Hz up to ~14 kHz.
+* **Button B3 (Q Edit)**: Toggles Q edit mode for the Filter knobs. When active, turning the Filter knobs adjusts filter resonance ($Q$), indicated by a bright white pip overdrawn on the LED arc while the base filter level fill is hidden.
 
 ### Buttons
 * **B1**: Change Page
-* **B2**: Cycle Distortion Routing
-  * Mode 1 (Off): Bypass (No distortion)
-  * Mode 2 (Dim Orange): Pre-Filter Distortion
-  * Mode 3 (Dim Brick Ember): Post-Filter Distortion
-* **B3**: Cycle Filter Mode
-  * Mode 1 (Dim Brick Ember): LowPass
-  * Mode 2 (Dim Orange): BandPass
-  * Mode 3 (Dim Spruce Blue): HighPass
+* **B2**: Toggle Distortion Routing
+  * Mode 1 (Dim Orange): Pre-Filter Distortion
+  * Mode 2 (Dim Brick Ember): Post-Filter Distortion
+* **B3**: Toggle Filter Q Edit Mode
+  * Off: Normal Filter Sweep (Ring Level)
+  * On (White): Filter Q / Resonance Edit (Overdrawn Pip)
 
 ### Knobs
-* **Knob 1**: Feedback Amount (Purple)
-* **Knob 2**: Feedback Delay Time (Purple)
-* **Knob 3**: Filter Cutoff (Spruce Blue)
-* **Knob 4**: Distortion Amount (Orange)
-* **Knob 5**: Distortion Bias / Symmetry (Orange)
-* **Knob 6**: Filter Resonance (Spruce Blue)
+* **Knob 1 (TL)**: Feedback 1 (Purple)
+* **Knob 2 (ML)**: Distortion 1 (Orange)
+* **Knob 3 (BL)**: Filter 1 (Spruce Blue / Q Edit Pip)
+* **Knob 4 (TR)**: Feedback 2 (Purple)
+* **Knob 5 (MR)**: Distortion 2 (Orange)
+* **Knob 6 (BR)**: Filter 2 (Spruce Blue / Q Edit Pip)
 
 ---
 

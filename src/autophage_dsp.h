@@ -16,16 +16,8 @@ enum class InputMode {
     NumModes
 };
 
-enum class FilterMode {
-    LowPass = 0,
-    BandPass,
-    HighPass,
-    NumModes
-};
-
 enum class DistortionRouting {
-    Bypass = 0,
-    PreFilter,
+    PreFilter = 0,
     PostFilter,
     NumModes
 };
@@ -42,19 +34,14 @@ struct ChannelParams
     float symmetry;       // Asymmetrical drive (-1..1)
     float warp;           // Slope & curvature distortion (-1..1)
     float feedback;       // Feedback amount (0..1)
-    float feedback_time;  // Feedback delay time (in seconds, e.g. 0.001 to 0.050)
     float distortion;     // Distortion amount (0..1)
-    float distortion_bias;// Distortion DC bias (-1..1)
-    float filter_cutoff;  // Filter cutoff in Hz
-    float filter_res;     // Filter resonance (0..1)
+    float filter;         // DJ filter amount (-1..1, CCW=LP, Center=Flat, CW=HP)
+    float filter_q;       // Filter resonance / Q (0..1)
 };
 
 /** Global routing parameters */
 void SetInputMode(InputMode mode);
 InputMode GetInputMode();
-
-void SetFilterMode(FilterMode mode);
-FilterMode GetFilterMode();
 
 void SetDistortionRouting(DistortionRouting routing);
 DistortionRouting GetDistortionRouting();
