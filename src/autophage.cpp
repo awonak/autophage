@@ -5,7 +5,6 @@
 #include "alchemy/host_link/host.h"
 #include "alchemy/hw/alchemy_lab.h"
 #include "alchemy/hw/alchemy_lab_v2_layout.h"
-#include "alchemy/led/ring_frame.h"
 #include "alchemy/surface/button_bank.h"
 #include "alchemy/surface/control_loop.h"
 #include "alchemy/surface/cv_matrix.h"
@@ -22,6 +21,13 @@
 
 using namespace alchemy;
 using namespace autophage::palette;
+
+enum : uint8_t {
+    kPageFold = 0,
+    kPageDestroy = 1,
+    kPageQ = 2,
+    kNumPages = 3,
+};
 
 /* Page 1: Left Channel Wave Folder */
 static VirtualKnob l_fold = VirtualKnob(kPotTopLeft, "Fold 1")
@@ -49,41 +55,6 @@ static VirtualKnob r_warp = VirtualKnob(kPotBottomRight, "Warp 2")
                                 .Linear(-1.0f, 1.0f)
                                 .Ring(Bipolar(kWarpPos, kWarpNeg, kWarpCenter));
 
-/* Page 2 State */
-/* Page 2 Filter & Q Sub-layer State */
-static bool p2_q_edit_mode = false;
-static PotState l_filter_cutoff_state = {0.5f, true, 0};  // Norm 0.5 = 0.0 (noon bypass)
-static PotState r_filter_cutoff_state = {0.5f, true, 0};
-static PotState l_filter_q_state = {0.2f, true, 0};  // Norm 0.2 = default Q
-static PotState r_filter_q_state = {0.2f, true, 0};
-
-static void DrawFilterRing(LedPanel& panel, uint8_t pot,
-                           const ArcGeometry& geo, float /*norm*/,
-                           uint32_t t_ms, void* /*ctx*/) {
-    uint8_t ch = (pot == kPotBottomLeft) ? 0 : 1;
-    const PotState& flt_state = (ch == 0) ? l_filter_cutoff_state : r_filter_cutoff_state;
-    const PotState& q_state = (ch == 0) ? l_filter_q_state : r_filter_q_state;
-    const PotState& active_state = p2_q_edit_mode ? q_state : flt_state;
-
-    RingFrame f;
-    f.Begin(geo);
-
-    // 1. Base Filter Level layer (dimmed when the active control is uncaught)
-    FillDesc fill;
-    fill.color = active_state.caught ? kFilter : LedPanel::Scale(kFilter, 0.30f);
-    f.Base(fill, flt_state.stored, t_ms);
-
-    // 2. Filter Q pip (SolidPip on top of the Filter Level layer)
-    PipDesc pip;
-    pip.color = active_state.caught ? kWhite : LedPanel::Scale(kWhite, 0.50f);
-    pip.compose = PipCompose::Add;
-    pip.smooth = true;
-    f.Pip(Region::Full, pip, q_state.stored);
-
-    // 3. Emit with PotState so that uncaught pot renders the catch pip
-    f.Emit(panel, pot, active_state);
-}
-
 /** Page 2: Left Channel (Ch 1) */
 static VirtualKnob l_feedback = VirtualKnob(kPotTopLeft, "Feed 1")
                                     .Linear(0.0f, 1.0f)
@@ -95,7 +66,7 @@ static VirtualKnob l_distortion = VirtualKnob(kPotMiddleLeft, "Dist 1")
 
 static VirtualKnob l_filter = VirtualKnob(kPotBottomLeft, "Filter 1")
                                   .Linear(-1.0f, 1.0f)
-                                  .Ring(Custom(DrawFilterRing));
+                                  .Ring(Level(kFilter));
 
 /** Page 2: Right Channel (Ch 2) */
 static VirtualKnob r_feedback = VirtualKnob(kPotTopRight, "Feed 2")
@@ -108,7 +79,16 @@ static VirtualKnob r_distortion = VirtualKnob(kPotMiddleRight, "Dist 2")
 
 static VirtualKnob r_filter = VirtualKnob(kPotBottomRight, "Filter 2")
                                   .Linear(-1.0f, 1.0f)
-                                  .Ring(Custom(DrawFilterRing));
+                                  .Ring(Level(kFilter));
+
+/** Page 2 Sub-page (Q Edit) Knobs */
+static VirtualKnob l_q = VirtualKnob(kPotBottomLeft, "Q 1")
+                             .Linear(0.0f, 1.0f)
+                             .Ring(Level(kAmber));
+
+static VirtualKnob r_q = VirtualKnob(kPotBottomRight, "Q 2")
+                             .Linear(0.0f, 1.0f)
+                             .Ring(Level(kAmber));
 
 /** Page 1 Buttons */
 static const char* const kInputModeLabels[] = {"Normal", "Stereo Link"};
@@ -130,51 +110,38 @@ static VirtualButton p1_bypass = VirtualButton(kButtonB3, "Bypass")
 static const char* const kDistRoutingLabels[] = {"Pre-Filter", "Post-Filter"};
 static const LedPanel::Rgb kDistRoutingColors[] = {kBtnDistPre, kBtnDistPost};
 
-static const char* const kFilterQEditLabels[] = {"Filter", "Q Edit"};
-static const LedPanel::Rgb kFilterQEditColors[] = {kOff, kWhite};
-
-/* Hardware & Pager surface instances */
-static AlchemyLab hw;
-static Pager pager(hw.buttons[0], 2, kNumPots);
-
-static void SetFilterQEdit(bool enable) {
-    p2_q_edit_mode = enable;
-    if (p2_q_edit_mode) {
-        InitCatch(l_filter_q_state, hw.pots[kPotBottomLeft].Value());
-        InitCatch(r_filter_q_state, hw.pots[kPotBottomRight].Value());
-    } else {
-        InitCatch(l_filter_cutoff_state, hw.pots[kPotBottomLeft].Value());
-        InitCatch(r_filter_cutoff_state, hw.pots[kPotBottomRight].Value());
-    }
-}
-
 static VirtualButton p2_dist_routing = VirtualButton(kButtonB2, "Dist Routing")
                                            .Ident("dist_routing")
                                            .Selector(kDistRoutingLabels)
                                            .Colors(kDistRoutingColors)
                                            .Bind(autophage_dsp::SetDistortionRouting);
 
-static VirtualButton p2_filter_q_mode = VirtualButton(kButtonB3, "Q Edit")
-                                            .Ident("q_edit")
-                                            .Selector(kFilterQEditLabels)
-                                            .Colors(kFilterQEditColors)
-                                            .Bind(SetFilterQEdit);
+/* Hardware & Pager surface instances */
+static AlchemyLab hw;
+static Pager pager = Pager(kNumPages, kNumPots)
+                         .Cycle(hw.buttons[kButtonB1], kPageFold, kPageDestroy)
+                         .Latch(hw.buttons[kButtonB3], kPageDestroy, kPageQ);
 
-static Page page1 = Page(0)
+static Page page1 = Page(kPageFold)
                         .Name("Fold")
                         .Color("#67e8f9")
                         .Knobs(l_fold, l_symmetry, l_warp, r_fold, r_symmetry, r_warp)
                         .Buttons(p1_link, p1_bypass);
 
-static Page page2 = Page(1)
+static Page page2 = Page(kPageDestroy)
                         .Name("Destroy")
                         .Color("#f75757")
                         .Knobs(l_feedback, l_distortion, l_filter, r_feedback, r_distortion, r_filter)
-                        .Buttons(p2_dist_routing, p2_filter_q_mode);
+                        .Buttons(p2_dist_routing);
+
+static Page page2_q = Page(kPageQ)
+                          .Name("Q")
+                          .Color("#ffffff")
+                          .Knobs(l_q, r_q);
 
 /* Remaining surfaces and ControlLoop */
 static ControlLoop loop(hw);
-static ParamLock<2 * kNumPots> locks(hw.buttons[0], pager);
+static ParamLock<kNumPages * kNumPots, LockLength<20, 20>> locks(hw.buttons[kButtonB1], pager);
 static ButtonBank buttons;
 static Presets presets(hw.seed.qspi);
 static Settings settings(hw, &pager);
@@ -182,15 +149,6 @@ static CvMatrix cv_matrix(kNumCvInputs);
 
 static hostlink::Host host(presets, "autophage", "Autophage Wave Folder",
                            "0.1.0", "Alpha1");
-
-static void OnPageChange() {
-    if (pager.Page() == 1) {
-        InitCatch(l_filter_cutoff_state, hw.pots[kPotBottomLeft].Value());
-        InitCatch(r_filter_cutoff_state, hw.pots[kPotBottomRight].Value());
-        InitCatch(l_filter_q_state, hw.pots[kPotBottomLeft].Value());
-        InitCatch(r_filter_q_state, hw.pots[kPotBottomRight].Value());
-    }
-}
 
 static void OnRender(uint32_t t_ms) {
     if (autophage_dsp::GetBypassed()) {
@@ -201,36 +159,23 @@ static void OnRender(uint32_t t_ms) {
 }
 
 static void UpdateCoeffs() {
-    if (pager.Page() == 1) {
-        if (p2_q_edit_mode) {
-            UpdateCatch(l_filter_q_state, hw.pots[kPotBottomLeft].Value());
-            UpdateCatch(r_filter_q_state, hw.pots[kPotBottomRight].Value());
-        } else {
-            UpdateCatch(l_filter_cutoff_state, hw.pots[kPotBottomLeft].Value());
-            UpdateCatch(r_filter_cutoff_state, hw.pots[kPotBottomRight].Value());
-        }
-    }
-
     autophage_dsp::SetBypassed(p1_bypass.Value());
-
-    float l_filter_val = (l_filter_cutoff_state.stored * 2.0f) - 1.0f;
-    float r_filter_val = (r_filter_cutoff_state.stored * 2.0f) - 1.0f;
 
     autophage_dsp::SetChannel(0, {l_fold.Value(),
                                   l_symmetry.Value(),
                                   l_warp.Value(),
                                   l_feedback.Value(),
                                   l_distortion.Value(),
-                                  l_filter_val,
-                                  l_filter_q_state.stored});
+                                  l_filter.Value(),
+                                  l_q.Value()});
 
     autophage_dsp::SetChannel(1, {r_fold.Value(),
                                   r_symmetry.Value(),
                                   r_warp.Value(),
                                   r_feedback.Value(),
                                   r_distortion.Value(),
-                                  r_filter_val,
-                                  r_filter_q_state.stored});
+                                  r_filter.Value(),
+                                  r_q.Value()});
 }
 
 int main() {
@@ -240,20 +185,24 @@ int main() {
     static const float kZeroPhys[kNumPots] = {};
 
     // Set default values for Page 1 knobs
-    pager.SetStored(0, 0, 0.0f, kZeroPhys);  // Fold 1 (norm 0.0 = 0.0f, fully CCW)
-    pager.SetStored(0, 1, 0.0f, kZeroPhys);  // Fold 2 (norm 0.0 = 0.0f, fully CCW)
-    pager.SetStored(0, 2, 0.5f, kZeroPhys);  // Sym 1 (norm 0.5 = 0.0f, 12 o'clock)
-    pager.SetStored(0, 3, 0.5f, kZeroPhys);  // Sym 2 (norm 0.5 = 0.0f, 12 o'clock)
-    pager.SetStored(0, 4, 0.5f, kZeroPhys);  // Warp 1 (norm 0.5 = 0.0f, 12 o'clock)
-    pager.SetStored(0, 5, 0.5f, kZeroPhys);  // Warp 2 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(kPageFold, kPotTopLeft, 0.0f, kZeroPhys);      // Fold 1 (norm 0.0 = 0.0f, fully CCW)
+    pager.SetStored(kPageFold, kPotTopRight, 0.0f, kZeroPhys);     // Fold 2 (norm 0.0 = 0.0f, fully CCW)
+    pager.SetStored(kPageFold, kPotMiddleLeft, 0.5f, kZeroPhys);   // Sym 1 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(kPageFold, kPotMiddleRight, 0.5f, kZeroPhys);  // Sym 2 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(kPageFold, kPotBottomLeft, 0.5f, kZeroPhys);   // Warp 1 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(kPageFold, kPotBottomRight, 0.5f, kZeroPhys);  // Warp 2 (norm 0.5 = 0.0f, 12 o'clock)
 
-    // Set default values for background Page 2 knobs
-    pager.SetStored(1, 0, 0.0f, kZeroPhys);  // Feed 1
-    pager.SetStored(1, 1, 0.0f, kZeroPhys);  // Feed 2
-    pager.SetStored(1, 2, 0.0f, kZeroPhys);  // Dist 1
-    pager.SetStored(1, 3, 0.0f, kZeroPhys);  // Dist 2
-    pager.SetStored(1, 4, 0.5f, kZeroPhys);  // Filter 1 (norm 0.5 = 0.0f, 12 o'clock)
-    pager.SetStored(1, 5, 0.5f, kZeroPhys);  // Filter 2 (norm 0.5 = 0.0f, 12 o'clock)
+    // Set default values for Page 2 knobs
+    pager.SetStored(kPageDestroy, kPotTopLeft, 0.0f, kZeroPhys);      // Feed 1
+    pager.SetStored(kPageDestroy, kPotTopRight, 0.0f, kZeroPhys);     // Feed 2
+    pager.SetStored(kPageDestroy, kPotMiddleLeft, 0.0f, kZeroPhys);   // Dist 1
+    pager.SetStored(kPageDestroy, kPotMiddleRight, 0.0f, kZeroPhys);  // Dist 2
+    pager.SetStored(kPageDestroy, kPotBottomLeft, 0.5f, kZeroPhys);   // Filter 1 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(kPageDestroy, kPotBottomRight, 0.5f, kZeroPhys);  // Filter 2 (norm 0.5 = 0.0f, 12 o'clock)
+
+    // Set default values for Page 2 Sub-page (Q Edit) knobs
+    pager.SetStored(kPageQ, kPotBottomLeft, 0.2f, kZeroPhys);   // Q 1 (norm 0.2 = default Q)
+    pager.SetStored(kPageQ, kPotBottomRight, 0.2f, kZeroPhys);  // Q 2 (norm 0.2 = default Q)
 
     /* CV routing. Map the 6 CV jacks to the 6 wave folder parameters. */
     cv_matrix.Jack(0).To(l_fold);
@@ -282,8 +231,8 @@ int main() {
         .Use(buttons)
         .Use(page1)
         .Use(page2)
+        .Use(page2_q)
         .Use(host)
-        .OnPageChange(OnPageChange)
         .OnFrame(UpdateCoeffs)
         .OnRender(OnRender);
 
