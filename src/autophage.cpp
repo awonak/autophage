@@ -103,7 +103,7 @@ static VirtualButton p1_link = VirtualButton(kButtonB2, "Stereo Link")
 static VirtualButton p1_bypass = VirtualButton(kButtonB3, "Bypass")
                                      .Ident("bypassed")
                                      .Selector(kBypassLabels)
-                                     .Colors({kOff, kBtnStereoLink})
+                                     .Colors(kBypassColors)
                                      .Bind(autophage_dsp::SetBypassed);
 
 /** Page 2 Buttons */

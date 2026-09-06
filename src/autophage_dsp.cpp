@@ -49,7 +49,7 @@ struct DjFilter {
             return in;
         }
 
-        float t = abs_val; // 0.0 -> 1.0
+        float t = abs_val;  // 0.0 -> 1.0
         float cutoff_hz;
         if (filter_val < 0.0f) {
             // LowPass sweep: 20000 Hz (near 0) down to 30 Hz (at -1.0)
@@ -61,7 +61,7 @@ struct DjFilter {
 
         float nyquist = sample_rate_hz * 0.49f;
         if (cutoff_hz > nyquist) cutoff_hz = nyquist;
-        if (cutoff_hz < 10.0f)   cutoff_hz = 10.0f;
+        if (cutoff_hz < 10.0f) cutoff_hz = 10.0f;
 
         // Resonance: q_val = 0.0 is Butterworth (k = 1.414), 1.0 is resonant (k = 0.08)
         float k_target = 1.414f - q_val * 1.334f;
@@ -108,6 +108,11 @@ struct DcBlocker {
         R = 1.0f - (M_PI * 2.0f * cutoff_hz / sample_rate);
     }
 
+    void Reset() {
+        x_prev = 0.0f;
+        y_prev = 0.0f;
+    }
+
     float Process(float x) {
         float y = x - x_prev + R * y_prev;
         x_prev = x;
@@ -139,7 +144,17 @@ struct DelayLine {
 struct BazzFuss {
     float y_prev = 0.0f;
 
+    void Reset() {
+        y_prev = 0.0f;
+    }
+
     float Process(float in, float drive, DcBlocker& dc_block) {
+        if (drive <= 0.0001f) {
+            y_prev = 0.0f;
+            dc_block.Reset();
+            return in;
+        }
+
         float gain = 1.0f + drive * 20.0f;
         float k = drive * 0.99f;  // Max feedback is 0.99 for stability
 
@@ -153,7 +168,8 @@ struct BazzFuss {
         }
         y_prev = out;
 
-        return dc_block.Process(out);
+        float dist_out = dc_block.Process(out);
+        return in + drive * (dist_out - in);
     }
 };
 
@@ -198,6 +214,8 @@ struct ChannelState {
         dist_dc_block.Init(sample_rate);
         fb_dc_block.Init(sample_rate, 20.0f);
         fb_damp_filter.Init(sample_rate, 1800.0f);
+        distortion_fx.Reset();
+        filter_fx.Reset();
     }
 };
 
