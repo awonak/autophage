@@ -46,8 +46,8 @@ int main(int argc, char** argv) {
     params.warp = 0.0f;
     params.feedback = 0.0f;
     params.distortion = 0.0f;
-    params.filter_cutoff = 16000.0f;
-    params.filter_res = 0.0f;
+    params.filter = 0.0f;
+    params.filter_q = 0.2f;
 
     autophage_dsp::SetChannel(0, params);
     autophage_dsp::SetChannel(1, params);
@@ -79,9 +79,9 @@ int main(int argc, char** argv) {
         params.feedback = progress * 0.95f; // Up to near-oscillation
         params.distortion = progress * 0.8f; // Heavy distortion
         
-        // Sweep filter cutoff downwards
-        params.filter_cutoff = 16000.0f - (progress * 15000.0f);
-        params.filter_res = progress * 0.8f; // Add some resonance
+        // Sweep DJ filter from -1.0 (LP) to +1.0 (HP)
+        params.filter = progress * 2.0f - 1.0f;
+        params.filter_q = progress * 0.8f; // Add some Q resonance
 
         autophage_dsp::SetChannel(0, params);
         autophage_dsp::SetChannel(1, params);

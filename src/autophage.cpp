@@ -22,6 +22,13 @@
 using namespace alchemy;
 using namespace autophage::palette;
 
+enum : uint8_t {
+    kPageFold = 0,
+    kPageDestroy = 1,
+    kPageQ = 2,
+    kNumPages = 3,
+};
+
 /* Page 1: Left Channel Wave Folder */
 static VirtualKnob l_fold = VirtualKnob(kPotTopLeft, "Fold 1")
                                 .Linear(0.0f, 1.0f)
@@ -48,37 +55,40 @@ static VirtualKnob r_warp = VirtualKnob(kPotBottomRight, "Warp 2")
                                 .Linear(-1.0f, 1.0f)
                                 .Ring(Bipolar(kWarpPos, kWarpNeg, kWarpCenter));
 
-/** Page 2: Feedback (Global) **/
-static VirtualKnob p2_feedback = VirtualKnob(kPotTopLeft, "Feedback")
-                                     .Linear(0.0f, 1.0f)
-                                     .Ring(Level(kFeedback, FillAnim::Pulse));
+/** Page 2: Left Channel (Ch 1) */
+static VirtualKnob l_feedback = VirtualKnob(kPotTopLeft, "Feed 1")
+                                    .Linear(0.0f, 1.0f)
+                                    .Ring(Level(kFeedback, FillAnim::Pulse));
 
-static VirtualKnob p2_fb_time = VirtualKnob(kPotMiddleLeft, "Delay Time")
-                                    .Exp(0.001f, 0.050f)
-                                    .Ring(Level(kFeedback, FillAnim::None));
+static VirtualKnob l_distortion = VirtualKnob(kPotMiddleLeft, "Dist 1")
+                                      .Linear(0.0f, 1.0f)
+                                      .Ring(Level(kDistortion, FillAnim::Ripple));
 
-/** Page 2: Distortion (Global) */
-static VirtualKnob p2_distortion = VirtualKnob(kPotTopRight, "Distortion")
-                                       .Ident("dist.amount")
-                                       .Linear(0.0f, 1.0f)
-                                       .Ring(Level(kDistortion, FillAnim::Ripple));
+static VirtualKnob l_filter = VirtualKnob(kPotBottomLeft, "Filter 1")
+                                  .Linear(-1.0f, 1.0f)
+                                  .Ring(Level(kFilter));
 
-static VirtualKnob p2_dist_bias = VirtualKnob(kPotMiddleRight, "Distortion Bias")
-                                      .Ident("dist.bias")
-                                      .Linear(-1.0f, 1.0f)
-                                      .Ring(Bipolar(kDistortion, kDistortion, kSymmetryCenter));
+/** Page 2: Right Channel (Ch 2) */
+static VirtualKnob r_feedback = VirtualKnob(kPotTopRight, "Feed 2")
+                                    .Linear(0.0f, 1.0f)
+                                    .Ring(Level(kFeedback, FillAnim::Pulse));
 
-/** Page 2: Filter (Global) */
-static VirtualKnob p2_cutoff = VirtualKnob(kPotBottomLeft, "Cutoff")
-                                   .Ident("flt.cutoff")
-                                   .Exp(60.0f, 16000.0f)
-                                   .Unit("Hz")
-                                   .Ring(Level(kFilter, FillAnim::None));
+static VirtualKnob r_distortion = VirtualKnob(kPotMiddleRight, "Dist 2")
+                                      .Linear(0.0f, 1.0f)
+                                      .Ring(Level(kDistortion, FillAnim::Ripple));
 
-static VirtualKnob p2_res = VirtualKnob(kPotBottomRight, "Resonance")
-                                .Ident("flt.resonance")
-                                .Linear(0.0f, 1.0f)
-                                .Ring(Level(kFilter, FillAnim::None));
+static VirtualKnob r_filter = VirtualKnob(kPotBottomRight, "Filter 2")
+                                  .Linear(-1.0f, 1.0f)
+                                  .Ring(Level(kFilter));
+
+/** Page 2 Sub-page (Q Edit) Knobs */
+static VirtualKnob l_q = VirtualKnob(kPotBottomLeft, "Q 1")
+                             .Linear(0.0f, 1.0f)
+                             .Ring(Level(kAmber));
+
+static VirtualKnob r_q = VirtualKnob(kPotBottomRight, "Q 2")
+                             .Linear(0.0f, 1.0f)
+                             .Ring(Level(kAmber));
 
 /** Page 1 Buttons */
 static const char* const kInputModeLabels[] = {"Normal", "Stereo Link"};
@@ -88,10 +98,7 @@ static const char* const kBypassLabels[] = {"Active", "Bypassed"};
 static const LedPanel::Rgb kBypassColors[] = {kOff, kBtnBypass};
 
 static VirtualButton p1_link = VirtualButton(kButtonB2, "Stereo Link")
-                                   .Ident("input_mode")
-                                   .Selector(kInputModeLabels)
-                                   .Colors(kInputModeColors)
-                                   .Bind(autophage_dsp::SetInputMode);
+                                   .Toggle();
 
 static VirtualButton p1_bypass = VirtualButton(kButtonB3, "Bypass")
                                      .Ident("bypassed")
@@ -100,43 +107,41 @@ static VirtualButton p1_bypass = VirtualButton(kButtonB3, "Bypass")
                                      .Bind(autophage_dsp::SetBypassed);
 
 /** Page 2 Buttons */
-static const char* const kDistRoutingLabels[] = {"Bypass", "Pre-Filter", "Post-Filter"};
-static const LedPanel::Rgb kDistRoutingColors[] = {kOff, kBtnDistPre, kBtnDistPost};
-
-static const char* const kFilterModeLabels[] = {"LowPass", "BandPass", "HighPass"};
-static const LedPanel::Rgb kFilterModeColors[] = {kBtnFilterLp, kBtnFilterBp, kBtnFilterHp};
+static const char* const kDistRoutingLabels[] = {"Pre-Filter", "Post-Filter"};
+static const LedPanel::Rgb kDistRoutingColors[] = {kBtnDistPre, kBtnDistPost};
 
 static VirtualButton p2_dist_routing = VirtualButton(kButtonB2, "Dist Routing")
                                            .Ident("dist_routing")
                                            .Selector(kDistRoutingLabels)
                                            .Colors(kDistRoutingColors)
-                                           .Bind(autophage_dsp::SetDistortionRouting)
-                                           .Anchor("dist.amount");
+                                           .Bind(autophage_dsp::SetDistortionRouting);
 
-static VirtualButton p2_filter_mode = VirtualButton(kButtonB3, "Filter Mode")
-                                          .Ident("filter_mode")
-                                          .Selector(kFilterModeLabels)
-                                          .Colors(kFilterModeColors)
-                                          .Bind(autophage_dsp::SetFilterMode)
-                                          .Anchor("flt.resonance");
+/* Hardware & Pager surface instances */
+static AlchemyLab hw;
+static Pager pager = Pager(kNumPages, kNumPots)
+                         .Cycle(hw.buttons[kButtonB1], kPageFold, kPageDestroy)
+                         .Latch(hw.buttons[kButtonB3], kPageDestroy, kPageQ);
 
-static Page page1 = Page(0)
+static Page page1 = Page(kPageFold)
                         .Name("Fold")
                         .Color("#67e8f9")
                         .Knobs(l_fold, l_symmetry, l_warp, r_fold, r_symmetry, r_warp)
                         .Buttons(p1_link, p1_bypass);
 
-static Page page2 = Page(1)
+static Page page2 = Page(kPageDestroy)
                         .Name("Destroy")
                         .Color("#f75757")
-                        .Knobs(p2_feedback, p2_distortion, p2_fb_time, p2_dist_bias, p2_cutoff, p2_res)
-                        .Buttons(p2_dist_routing, p2_filter_mode);
+                        .Knobs(l_feedback, l_distortion, l_filter, r_feedback, r_distortion, r_filter)
+                        .Buttons(p2_dist_routing);
 
-/* Get our SDK surfaces and opt in to everything */
-static AlchemyLab hw;
+static Page page2_q = Page(kPageQ)
+                          .Name("Q")
+                          .Color("#ffffff")
+                          .Knobs(l_q, r_q);
+
+/* Remaining surfaces and ControlLoop */
 static ControlLoop loop(hw);
-static Pager pager(hw.buttons[0], 2, kNumPots);
-static ParamLock<2 * kNumPots> locks(hw.buttons[0], pager);
+static ParamLock<kNumPages * kNumPots, LockLength<20, 20>> locks(hw.buttons[kButtonB1], pager);
 static ButtonBank buttons;
 static Presets presets(hw.seed.qspi);
 static Settings settings(hw, &pager);
@@ -154,46 +159,50 @@ static void OnRender(uint32_t t_ms) {
 }
 
 static void UpdateCoeffs() {
+    autophage_dsp::SetBypassed(p1_bypass.Value());
+
     autophage_dsp::SetChannel(0, {l_fold.Value(),
                                   l_symmetry.Value(),
                                   l_warp.Value(),
-                                  p2_feedback.Value(),
-                                  p2_fb_time.Value(),
-                                  p2_distortion.Value(),
-                                  p2_dist_bias.Value(),
-                                  p2_cutoff.Value(),
-                                  p2_res.Value()});
+                                  l_feedback.Value(),
+                                  l_distortion.Value(),
+                                  l_filter.Value(),
+                                  l_q.Value()});
 
     autophage_dsp::SetChannel(1, {r_fold.Value(),
                                   r_symmetry.Value(),
                                   r_warp.Value(),
-                                  p2_feedback.Value(),
-                                  p2_fb_time.Value(),
-                                  p2_distortion.Value(),
-                                  p2_dist_bias.Value(),
-                                  p2_cutoff.Value(),
-                                  p2_res.Value()});
+                                  r_feedback.Value(),
+                                  r_distortion.Value(),
+                                  r_filter.Value(),
+                                  r_q.Value()});
 }
 
 int main() {
     hw.Init();
     autophage_dsp::Init(hw.SampleRate());
 
-    // Set default values for Page 1 knobs
-    pager.SetStored(0, 0, 0.0f, nullptr);  // Fold 1 (norm 0.0 = 0.0f, fully CCW)
-    pager.SetStored(0, 1, 0.0f, nullptr);  // Fold 2 (norm 0.0 = 0.0f, fully CCW)
-    pager.SetStored(0, 2, 0.5f, nullptr);  // Sym 1 (norm 0.5 = 0.0f, 12 o'clock)
-    pager.SetStored(0, 3, 0.5f, nullptr);  // Sym 2 (norm 0.5 = 0.0f, 12 o'clock)
-    pager.SetStored(0, 4, 0.5f, nullptr);  // Warp 1 (norm 0.5 = 0.0f, 12 o'clock)
-    pager.SetStored(0, 5, 0.5f, nullptr);  // Warp 2 (norm 0.5 = 0.0f, 12 o'clock)
+    static const float kZeroPhys[kNumPots] = {};
 
-    // Set default values for background Page 2 knobs
-    pager.SetStored(1, 0, 0.0f, nullptr);  // Feedback
-    pager.SetStored(1, 1, 0.0f, nullptr);  // Distortion
-    pager.SetStored(1, 2, 0.0f, nullptr);  // Feedback Time (norm 0 = 0.001f)
-    pager.SetStored(1, 3, 0.5f, nullptr);  // Dist Bias (norm 0.5 = 0.0f)
-    pager.SetStored(1, 4, 1.0f, nullptr);  // Cutoff
-    pager.SetStored(1, 5, 0.0f, nullptr);  // Resonance
+    // Set default values for Page 1 knobs
+    pager.SetStored(kPageFold, kPotTopLeft, 0.0f, kZeroPhys);      // Fold 1 (norm 0.0 = 0.0f, fully CCW)
+    pager.SetStored(kPageFold, kPotTopRight, 0.0f, kZeroPhys);     // Fold 2 (norm 0.0 = 0.0f, fully CCW)
+    pager.SetStored(kPageFold, kPotMiddleLeft, 0.5f, kZeroPhys);   // Sym 1 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(kPageFold, kPotMiddleRight, 0.5f, kZeroPhys);  // Sym 2 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(kPageFold, kPotBottomLeft, 0.5f, kZeroPhys);   // Warp 1 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(kPageFold, kPotBottomRight, 0.5f, kZeroPhys);  // Warp 2 (norm 0.5 = 0.0f, 12 o'clock)
+
+    // Set default values for Page 2 knobs
+    pager.SetStored(kPageDestroy, kPotTopLeft, 0.0f, kZeroPhys);      // Feed 1
+    pager.SetStored(kPageDestroy, kPotTopRight, 0.0f, kZeroPhys);     // Feed 2
+    pager.SetStored(kPageDestroy, kPotMiddleLeft, 0.0f, kZeroPhys);   // Dist 1
+    pager.SetStored(kPageDestroy, kPotMiddleRight, 0.0f, kZeroPhys);  // Dist 2
+    pager.SetStored(kPageDestroy, kPotBottomLeft, 0.5f, kZeroPhys);   // Filter 1 (norm 0.5 = 0.0f, 12 o'clock)
+    pager.SetStored(kPageDestroy, kPotBottomRight, 0.5f, kZeroPhys);  // Filter 2 (norm 0.5 = 0.0f, 12 o'clock)
+
+    // Set default values for Page 2 Sub-page (Q Edit) knobs
+    pager.SetStored(kPageQ, kPotBottomLeft, 0.2f, kZeroPhys);   // Q 1 (norm 0.2 = default Q)
+    pager.SetStored(kPageQ, kPotBottomRight, 0.2f, kZeroPhys);  // Q 2 (norm 0.2 = default Q)
 
     /* CV routing. Map the 6 CV jacks to the 6 wave folder parameters. */
     cv_matrix.Jack(0).To(l_fold);
@@ -222,6 +231,7 @@ int main() {
         .Use(buttons)
         .Use(page1)
         .Use(page2)
+        .Use(page2_q)
         .Use(host)
         .OnFrame(UpdateCoeffs)
         .OnRender(OnRender);
