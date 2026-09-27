@@ -1,6 +1,6 @@
 # Autophage
 
-**Wave Folder, Feedback, Filter, Distortion**
+**Wave Folder with Feedback, Filter, and Distortion**
 
 Autophage is a dual parallel wave folder firmware for the [Hermetic Modular Alchemy Lab](https://hermeticmodular.com/modules/alchemy-lab). The folding core is heavily inspired by the Zlob Foldiplier and Serge Wave Multiplier. 
 
