@@ -156,6 +156,26 @@ static VirtualKnob r_filter =
             "filter up to 16 kHz to carve out low frequencies. Resonance is adjusted on the Q sub-page.");
 
 /** Page 2 Sub-page (Q Edit) Knobs */
+static VirtualKnob q_unused_1 =
+    VirtualKnob(kPotTopLeft, "Unused")
+        .Ident("q_unused_1")
+        .Help("Unused parameter on the Q edit sub-page.");
+
+static VirtualKnob q_unused_2 =
+    VirtualKnob(kPotTopRight, "Unused")
+        .Ident("q_unused_2")
+        .Help("Unused parameter on the Q edit sub-page.");
+
+static VirtualKnob q_unused_3 =
+    VirtualKnob(kPotMiddleLeft, "Unused")
+        .Ident("q_unused_3")
+        .Help("Unused parameter on the Q edit sub-page.");
+
+static VirtualKnob q_unused_4 =
+    VirtualKnob(kPotMiddleRight, "Unused")
+        .Ident("q_unused_4")
+        .Help("Unused parameter on the Q edit sub-page.");
+
 static VirtualKnob l_q =
     VirtualKnob(kPotBottomLeft, "Q 1")
         .Linear(0.0f, 1.0f)
@@ -219,6 +239,16 @@ static VirtualButton p2_dist_routing =
             "into the DJ filter to smooth aggressive fuzz overtones. **Post-Filter** routes the filter "
             "into distortion to push resonant filter peaks into hard clipping.");
 
+static VirtualButton p2_q_latch =
+    VirtualButton(kButtonB3, "Q Edit")
+        .Ident("q_edit")
+        .Role(VirtualButton::Role::Modal)
+        .Action("tap", "Toggle Q Edit Mode")
+        .Help(
+            "Toggles between Page 2 (Destroy) and Page 3 (Q). In normal mode, the bottom "
+            "row knobs sweep the bipolar DJ filter cutoff frequency. When latched into Q Edit "
+            "mode, the bottom knobs calibrate filter resonance (Q).");
+
 /* Hardware & Pager surface instances */
 static AlchemyLab hw;
 static Pager pager = Pager(kNumPages, kNumPots)
@@ -245,7 +275,7 @@ static Page page2 =
             "featuring analog-modeled damped feedback, overdrive distortion, "
             "and bipolar DJ filters.")
         .Knobs(l_feedback, l_distortion, l_filter, r_feedback, r_distortion, r_filter)
-        .Buttons(p2_dist_routing);
+        .Buttons(p2_dist_routing, p2_q_latch);
 
 static Page page2_q =
     Page(kPageQ)
@@ -254,7 +284,7 @@ static Page page2_q =
         .Help(
             "Filter resonance adjustment for the Channel 1 and Channel 2 DJ filters, "
             "accessed by latching B3 on the Destroy page.")
-        .Knobs(l_q, r_q);
+        .Knobs(q_unused_1, q_unused_2, q_unused_3, q_unused_4, l_q, r_q);
 
 /* Remaining surfaces and ControlLoop */
 static ControlLoop loop(hw);
@@ -299,12 +329,13 @@ static void InitManual() {
     r_distortion.SeeAlso(p2_dist_routing, r_filter, r_feedback, l_distortion);
     l_filter.SeeAlso(l_q, p2_dist_routing, l_distortion, r_filter);
     r_filter.SeeAlso(r_q, p2_dist_routing, r_distortion, l_filter);
-    l_q.SeeAlso(l_filter, r_q);
-    r_q.SeeAlso(r_filter, l_q);
+    l_q.SeeAlso(l_filter, r_q, p2_q_latch);
+    r_q.SeeAlso(r_filter, l_q, p2_q_latch);
 
     p1_link.SeeAlso(p1_bypass, l_fold, r_fold);
     p1_bypass.SeeAlso(p1_link, l_fold, r_fold);
     p2_dist_routing.SeeAlso(l_distortion, r_distortion, l_filter, r_filter);
+    p2_q_latch.SeeAlso(l_filter, r_filter, l_q, r_q);
 }
 
 static void OnRender(uint32_t t_ms) {
@@ -363,6 +394,10 @@ int main() {
     pager.SetStored(kPageDestroy, kPotBottomRight, 0.5f, kZeroPhys);  // Filter 2 (norm 0.5 = 0.0f, 12 o'clock)
 
     // Set default values for Page 2 Sub-page (Q Edit) knobs
+    pager.SetStored(kPageQ, kPotTopLeft, 0.0f, kZeroPhys);      // Unused 1
+    pager.SetStored(kPageQ, kPotTopRight, 0.0f, kZeroPhys);     // Unused 2
+    pager.SetStored(kPageQ, kPotMiddleLeft, 0.0f, kZeroPhys);   // Unused 3
+    pager.SetStored(kPageQ, kPotMiddleRight, 0.0f, kZeroPhys);  // Unused 4
     pager.SetStored(kPageQ, kPotBottomLeft, 0.2f, kZeroPhys);   // Q 1 (norm 0.2 = default Q)
     pager.SetStored(kPageQ, kPotBottomRight, 0.2f, kZeroPhys);  // Q 2 (norm 0.2 = default Q)
 
